@@ -1,0 +1,77 @@
+import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { FileText, Plus } from 'lucide-react'
+import { Avatar, Btn, Card, CardHead, Chip, Dialog, MiniStat, Pills, Progress } from '../../../../common/ui'
+import { useManager } from '../../layout/ManagerContext'
+import { STATUS, TEMPLATES, announceStore } from './data'
+
+// Figma 16.0 — Thông báo đã tạo + mẫu thông báo nhanh
+export default function ThongBao() {
+  const navigate = useNavigate()
+  const { notify } = useManager()
+  const items = announceStore.use()
+  const [filter, setFilter] = useState('all')
+  const [preview, setPreview] = useState(null)
+  const count = (s) => items.filter((i) => i.status === s).length
+  const rows = useMemo(() => items.filter((i) => filter === 'all' || i.status === filter), [items, filter])
+  const filters = [
+    { value: 'all', label: `Tất cả (${items.length})` }, { value: 'sent', label: `Đã gửi (${count('sent')})` },
+    { value: 'scheduled', label: `Hẹn giờ (${count('scheduled')})` }, { value: 'draft', label: `Bản nháp (${count('draft')})` },
+  ]
+
+  return (
+    <div className="u-page">
+      <div className="u-grid u-grid--4">
+        <MiniStat label="Đã gửi tháng này" value={24 + count('sent') - 4} lg />
+        <MiniStat label="Tỉ lệ đã đọc trung bình" value="78%" lg />
+        <MiniStat label="Đang hẹn giờ" value={count('scheduled')} lg />
+        <MiniStat label="Bản nháp" value={count('draft')} lg />
+      </div>
+      <div className="u-toolbar">
+        <Pills items={filters} value={filter} onChange={setFilter} />
+        <span className="u-grow" />
+        <Btn icon={Plus} onClick={() => navigate('/thongbao/soan')}>Soạn thông báo mới</Btn>
+      </div>
+
+      <div className="tb-cols">
+        <Card>
+          <CardHead title="Thông báo đã tạo" />
+          {rows.length === 0 && <p className="u-faint" style={{ padding: 24, textAlign: 'center' }}>Không có thông báo phù hợp</p>}
+          {rows.map((a) => (
+            <div key={a.id} className="tb-item" role="button" tabIndex={0} onClick={() => navigate(`/thongbao/${a.id}`)} onKeyDown={(e) => e.key === 'Enter' && navigate(`/thongbao/${a.id}`)}>
+              <span className="tb-item__icon"><FileText size={17} /></span>
+              <div className="u-grow"><strong>{a.title}</strong><small>{a.meta}</small></div>
+              <div className="tb-item__side">
+                <Chip tone={STATUS[a.status].tone}>{STATUS[a.status].label}</Chip>
+                {a.read !== null && (<><Progress value={a.read} color="var(--success-fill)" label="Tỉ lệ đã đọc" /><span>{a.read}% đã đọc</span></>)}
+              </div>
+            </div>
+          ))}
+        </Card>
+
+        <Card>
+          <CardHead title="Mẫu thông báo nhanh" action="Quản lý mẫu" onAction={() => notify('Quản lý mẫu thông báo sẽ có ở phiên bản sau')} />
+          {TEMPLATES.map((t) => (
+            <div key={t.id} className="tb-tpl">
+              <div className="u-person"><Avatar name={t.letter} size={30} /><div><strong>{t.title}</strong><small>{t.desc}</small></div></div>
+              <div className="u-row">
+                <Btn size="sm" onClick={() => navigate('/thongbao/soan', { state: { template: t } })}>Dùng mẫu</Btn>
+                <Btn variant="ghost" size="sm" onClick={() => setPreview(t)}>Xem trước</Btn>
+              </div>
+            </div>
+          ))}
+        </Card>
+      </div>
+
+      {preview && (
+        <Dialog title={preview.title} subtitle="Xem trước mẫu thông báo" onClose={() => setPreview(null)}>
+          <div className="hp-msg">{preview.content}</div>
+          <div className="u-modal__foot">
+            <Btn variant="ghost" size="sq" onClick={() => setPreview(null)}>Đóng</Btn>
+            <Btn size="sq" onClick={() => navigate('/thongbao/soan', { state: { template: preview } })}>Dùng mẫu</Btn>
+          </div>
+        </Dialog>
+      )}
+    </div>
+  )
+}
