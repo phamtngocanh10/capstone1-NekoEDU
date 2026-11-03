@@ -22,12 +22,16 @@ def test_migration_can_downgrade_and_upgrade(app):
         assert len(inspect(db.engine).get_table_names()) == 28  # 27 bảng + alembic_version
 
 
-def test_seed_command_loads_sample_data(app):
+def test_seed_command_loads_sample_data(app, client):
     result = app.test_cli_runner().invoke(args=["seed", "--yes"])
 
     assert result.exit_code == 0, result.output
     with app.app_context():
         assert db.session.scalar(select(func.count()).select_from(User)) == 185
+
+    # Mật khẩu seed được băm bằng pgcrypto ($2a$), backend phải kiểm tra được
+    res = client.post("/api/v1/auth/login", json={"username": "gv01@neko.edu.vn", "password": "Neko@2026"})
+    assert res.status_code == 200
 
 
 def test_seed_command_asks_for_confirmation(app, create_user):

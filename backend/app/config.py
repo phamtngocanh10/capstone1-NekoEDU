@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 
 from dotenv import load_dotenv
 
@@ -22,6 +23,14 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
 
+    # JWT
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret-key-only-for-local-development")
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_MINUTES", "480")))
+    JWT_TOKEN_LOCATION = ["headers"]
+
+    # Cost của bcrypt, giữ bằng cost của dữ liệu seed (10) để thời gian kiểm tra mật khẩu đồng đều
+    BCRYPT_ROUNDS = 10
+
     # OpenAPI / Swagger UI (flask-smorest)
     API_TITLE = "NEKO Edu API"
     API_VERSION = "v1"
@@ -30,6 +39,15 @@ class Config:
     OPENAPI_JSON_PATH = "openapi.json"
     OPENAPI_SWAGGER_UI_PATH = "/docs"
     OPENAPI_SWAGGER_UI_URL = "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
+    # Mặc định mọi endpoint cần Bearer token; endpoint public tự khai báo security=[]
+    API_SPEC_OPTIONS = {
+        "components": {
+            "securitySchemes": {
+                "bearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"},
+            },
+        },
+        "security": [{"bearerAuth": []}],
+    }
 
 
 class DevelopmentConfig(Config):
@@ -45,12 +63,16 @@ class TestingConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "TEST_DATABASE_URL", "postgresql+psycopg://localhost:5432/neko_edu_test"
     )
+    JWT_SECRET_KEY = "test-jwt-secret-key-at-least-32-bytes-long"
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
+    BCRYPT_ROUNDS = 4
 
 
 class ProductionConfig(Config):
     ENV_NAME = "production"
     # Production bắt buộc đặt các secret qua biến môi trường, không dùng giá trị mặc định
     SECRET_KEY = os.getenv("SECRET_KEY")
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 
 
 config_by_name = {

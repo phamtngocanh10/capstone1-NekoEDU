@@ -7,6 +7,7 @@ router = Blueprint("health", __name__, description="Kiểm tra trạng thái h�
 
 
 @router.route("", methods=["GET"])
+@router.doc(security=[])
 @router.response(200, HealthSchema)
 def get_health():
     """Health check"""

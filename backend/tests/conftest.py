@@ -6,8 +6,11 @@ from sqlalchemy import select, text
 from sqlalchemy.engine import make_url
 
 from app import create_app
+from app.common.security import hash_password
 from app.extensions import db
 from app.models import Role, RoleCode, StaffPosition, StaffProfile, User, UserStatus
+
+DEFAULT_PASSWORD = "Neko@2026"
 
 ROLES = {
     RoleCode.MANAGER: "Quản lý trung tâm",
@@ -60,6 +63,7 @@ def create_user(app):
         username: str,
         role: RoleCode = RoleCode.MANAGER,
         *,
+        password: str = DEFAULT_PASSWORD,
         status: UserStatus = UserStatus.ACTIVE,
         email=_AUTO,
         full_name: str | None = None,
@@ -68,7 +72,7 @@ def create_user(app):
             user = User(
                 username=username,
                 email=f"{username}@neko.edu.vn" if email is _AUTO else email,
-                password_hash="x",
+                password_hash=hash_password(password),
                 full_name=full_name or f"User {username}",
                 role=db.session.scalar(select(Role).where(Role.code == role)),
                 status=status,
