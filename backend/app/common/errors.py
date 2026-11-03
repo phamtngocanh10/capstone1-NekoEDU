@@ -31,11 +31,15 @@ class ForbiddenError(AppError):
     status_code = HTTPStatus.FORBIDDEN
 
 
+def error_response(status_code: int, message: str, errors: dict | None = None):
+    status = HTTPStatus(status_code)
+    body = {"code": status.value, "status": status.phrase, "message": message}
+    if errors:
+        body["errors"] = errors
+    return jsonify(body), status.value
+
+
 def register_error_handlers(app: Flask) -> None:
     @app.errorhandler(AppError)
     def handle_app_error(error: AppError):
-        status = HTTPStatus(error.status_code)
-        body = {"code": status.value, "status": status.phrase, "message": error.message}
-        if error.errors:
-            body["errors"] = error.errors
-        return jsonify(body), status.value
+        return error_response(error.status_code, error.message, error.errors)

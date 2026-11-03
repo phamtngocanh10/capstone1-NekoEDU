@@ -26,6 +26,8 @@ def create_app(config_name: str | None = None) -> Flask:
 
     if not app.config.get("SECRET_KEY"):
         raise RuntimeError("SECRET_KEY chưa được cấu hình (xem .env.example).")
+    # Trả tiếng Việt nguyên dạng trong JSON thay vì \uXXXX
+    app.json.ensure_ascii = False
 
     logging.basicConfig(
         level=app.config["LOG_LEVEL"],
