@@ -52,11 +52,12 @@ TABLES = [
 
 
 def _execute_sql_script(sql: str) -> None:
-    # Chạy bằng cursor của psycopg (không truyền tham số) để chạy được nhiều câu lệnh một lần
-    # và ký tự '%' trong COMMENT không bị hiểu là placeholder.
+    # pyodbc chạy file T-SQL dưới dạng một batch; file không chứa lệnh GO.
     cursor = op.get_bind().connection.dbapi_connection.cursor()
     try:
         cursor.execute(sql)
+        while cursor.nextset():
+            pass
     finally:
         cursor.close()
 
@@ -67,4 +68,4 @@ def upgrade():
 
 def downgrade():
     for table in TABLES:
-        op.execute(f"DROP TABLE IF EXISTS {table} CASCADE")
+        op.execute(f"DROP TABLE IF EXISTS {table}")

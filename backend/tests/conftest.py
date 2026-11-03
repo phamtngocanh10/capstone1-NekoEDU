@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 from flask_jwt_extended import create_access_token
-from flask_migrate import upgrade
+from flask_migrate import downgrade, upgrade
 from sqlalchemy import select, text
 from sqlalchemy.engine import make_url
 
@@ -22,6 +22,15 @@ ROLES = {
 
 _AUTO = object()
 
+TABLES_CHILD_FIRST = (
+    "audit_logs", "policy_documents", "ai_alerts", "notifications",
+    "finance_transactions", "finance_categories", "staff_payrolls", "receipts",
+    "payments", "tuition_invoices", "student_discounts", "discount_policies",
+    "student_requests", "attendances", "class_sessions", "class_enrollments",
+    "class_schedules", "classes", "rooms", "courses", "admission_leads",
+    "students", "levels", "guardians", "staff_profiles", "users", "roles",
+)
+
 
 @pytest.fixture(scope="session")
 def app():
@@ -36,9 +45,7 @@ def app():
         )
 
     with app.app_context():
-        with db.engine.begin() as conn:
-            conn.execute(text("DROP SCHEMA IF EXISTS public CASCADE"))
-            conn.execute(text("CREATE SCHEMA public"))
+        downgrade(revision="base")
         upgrade()
 
     return app
@@ -53,7 +60,10 @@ def client(app):
 def reset_db(app):
     """Mỗi test bắt đầu với DB chỉ có 4 role, không có tài khoản nào."""
     with app.app_context():
-        db.session.execute(text("TRUNCATE roles, users RESTART IDENTITY CASCADE"))
+        for table in TABLES_CHILD_FIRST:
+            db.session.execute(text(f"DELETE FROM {table}"))
+        for table in TABLES_CHILD_FIRST:
+            db.session.execute(text(f"DBCC CHECKIDENT ('{table}', RESEED, 0)"))
         db.session.add_all(Role(code=code, name=name) for code, name in ROLES.items())
         db.session.commit()
 

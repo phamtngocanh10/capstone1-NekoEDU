@@ -19,9 +19,9 @@ class Config:
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
     CORS_ORIGINS = _split_csv(os.getenv("CORS_ORIGINS", "http://localhost:5173"))
 
-    # Database (PostgreSQL)
+    # Database (Microsoft SQL Server qua pyodbc)
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
-    SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
+    SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True, "fast_executemany": True}
 
     # JWT
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret-key-only-for-local-development")
@@ -61,7 +61,9 @@ class TestingConfig(Config):
     TESTING = True
     SECRET_KEY = "test-secret-key"
     SQLALCHEMY_DATABASE_URI = os.getenv(
-        "TEST_DATABASE_URL", "postgresql+psycopg://localhost:5432/neko_edu_test"
+        "TEST_DATABASE_URL",
+        "mssql+pyodbc://sa:Neko%402026@localhost:1433/neko_edu_test"
+        "?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=yes&TrustServerCertificate=yes",
     )
     JWT_SECRET_KEY = "test-jwt-secret-key-at-least-32-bytes-long"
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)

@@ -3,9 +3,10 @@
 from pathlib import Path
 
 import click
-import psycopg
+import pyodbc
 from flask import Flask, current_app
 
+from app.common.security import hash_password
 from app.extensions import db
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -15,12 +16,26 @@ DEFAULT_SEED_FILE = BACKEND_DIR / "seeds" / "03_seed.sql"
 def run_sql_script(sql: str) -> None:
     """Chạy nguyên một file SQL nhiều câu lệnh.
 
-    Dùng psycopg trực tiếp (autocommit) vì file seed tự quản lý transaction (BEGIN/COMMIT)
-    và có ký tự '%' trong dữ liệu, không chạy qua SQLAlchemy được.
+    Dùng DBAPI cursor của pyodbc vì file seed là một T-SQL batch tự quản lý transaction.
     """
-    conninfo = db.engine.url.set(drivername="postgresql").render_as_string(hide_password=False)
-    with psycopg.connect(conninfo, autocommit=True) as conn:
-        conn.execute(sql)
+    connection = db.engine.raw_connection()
+    cursor = None
+    try:
+        cursor = connection.cursor()
+        cursor.execute(sql)
+        while cursor.nextset():
+            pass
+        connection.commit()
+        # SET options are scoped to the pooled SQL Server connection.
+        cursor.execute("SET NOCOUNT OFF")
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        if cursor is not None:
+            cursor.close()
+        connection.close()
 
 
 def register_commands(app: Flask) -> None:
@@ -48,10 +63,13 @@ def register_commands(app: Flask) -> None:
             )
 
         try:
-            run_sql_script(file_path.read_text(encoding="utf-8"))
-        except psycopg.errors.UndefinedTable as exc:
+            sql = file_path.read_text(encoding="utf-8").replace(
+                "__PW__", hash_password("Neko@2026")
+            )
+            run_sql_script(sql)
+        except pyodbc.Error as exc:
             raise click.ClickException(
-                f"Chưa có bảng trong database, hãy chạy `flask db upgrade` trước. ({exc})"
+                f"Không thể nạp seed. Hãy kiểm tra database và chạy `flask db upgrade` trước. ({exc})"
             ) from exc
 
         click.echo(f"Đã nạp dữ liệu mẫu vào database '{db_name}'.")

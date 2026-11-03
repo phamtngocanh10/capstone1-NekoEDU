@@ -3,14 +3,15 @@
 Flask REST API cho nền tảng quản lý trung tâm Anh ngữ NEKO Edu.
 
 - **Flask 3** + **flask-smorest** (routing, validate dữ liệu bằng marshmallow, tự sinh Swagger)
-- **PostgreSQL** + **Flask-SQLAlchemy** + **Flask-Migrate** (Alembic)
+- **Microsoft SQL Server 2022** + **pyodbc** + **Flask-SQLAlchemy** + **Flask-Migrate**
 - **JWT** (Flask-JWT-Extended), mật khẩu băm **bcrypt**
 - **pytest** để test
 
 ## Yêu cầu
 
 - Python 3.11+
-- PostgreSQL 14+
+- Microsoft SQL Server 2022 (local, Docker hoặc server dùng chung)
+- Microsoft ODBC Driver 18 for SQL Server
 
 ## Cài đặt & chạy
 
@@ -21,9 +22,10 @@ source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
 cp .env.example .env               # sửa DATABASE_URL, TEST_DATABASE_URL, JWT_SECRET_KEY
 
-# Tạo 2 database (dev + test)
-createdb neko_edu
-createdb neko_edu_test
+# Tạo trước 2 database trên SQL Server: neko_edu và neko_edu_test
+# Ví dụ với sqlcmd (thay user/password theo môi trường):
+sqlcmd -S localhost,1433 -U sa -P 'your-password' -C \
+  -Q "CREATE DATABASE neko_edu; CREATE DATABASE neko_edu_test;"
 
 flask db upgrade                   # tạo bảng (migration)
 flask seed                         # nạp dữ liệu mẫu (XÓA dữ liệu cũ, có hỏi xác nhận)
@@ -86,7 +88,10 @@ curl http://127.0.0.1:8000/api/v1/users                                         
 
 ## Database & migration
 
-- Schema gốc do team Database quản lý. Migration đầu tiên (`migrations/versions/0001_initial_schema.py`) chạy file `migrations/sql/0001_initial_schema.sql`, tức `01_schema.sql` gồm 27 bảng.
+- Database dùng Microsoft SQL Server qua URL `mssql+pyodbc` và ODBC Driver 18.
+- Trên macOS có thể cài driver bằng Homebrew theo hướng dẫn chính thức của Microsoft;
+  trên Windows cài Microsoft ODBC Driver 18 trực tiếp.
+- Schema gốc do team Database quản lý. Migration đầu tiên (`migrations/versions/0001_initial_schema.py`) chạy file T-SQL `migrations/sql/0001_initial_schema.sql`, gồm 27 bảng.
 - **Không sửa** file SQL đó. Khi schema thay đổi, tạo migration mới:
   ```bash
   flask db migrate -m "mo ta thay doi"   # autogenerate từ model

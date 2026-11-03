@@ -9,9 +9,8 @@ from sqlalchemy import (
     ForeignKey,
     Identity,
     Numeric,
-    String,
+    Unicode,
     UniqueConstraint,
-    func,
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -42,12 +41,14 @@ class StaffProfile(db.Model):
     user_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("users.id", name="fk_staff_profiles_user_id", ondelete="CASCADE")
     )
-    staff_code: Mapped[str] = mapped_column(String(20))
-    position: Mapped[str] = mapped_column(String(30))
-    specialization: Mapped[str | None] = mapped_column(String(200))
+    staff_code: Mapped[str] = mapped_column(Unicode(20))
+    position: Mapped[str] = mapped_column(Unicode(30))
+    specialization: Mapped[str | None] = mapped_column(Unicode(200))
     rate_per_session: Mapped[Decimal] = mapped_column(Numeric(12, 0), server_default=text("0"))
     hire_date: Mapped[date] = mapped_column(Date)
-    status: Mapped[str] = mapped_column(String(20), server_default=text("'ACTIVE'"))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    status: Mapped[str] = mapped_column(Unicode(20), server_default=text("N'ACTIVE'"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=text("SYSDATETIMEOFFSET()")
+    )
 
     user: Mapped[User] = relationship()

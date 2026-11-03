@@ -29,7 +29,7 @@ def test_seed_command_loads_sample_data(app, client):
     with app.app_context():
         assert db.session.scalar(select(func.count()).select_from(User)) == 185
 
-    # Mật khẩu seed được băm bằng pgcrypto ($2a$), backend phải kiểm tra được
+    # Lệnh seed thay placeholder bằng BCrypt hash ($2b$), backend phải kiểm tra được
     res = client.post("/api/v1/auth/login", json={"username": "gv01@neko.edu.vn", "password": "Neko@2026"})
     assert res.status_code == 200
 
