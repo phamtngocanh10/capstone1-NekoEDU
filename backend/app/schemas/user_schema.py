@@ -1,4 +1,7 @@
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, validate
+
+from app.models import RoleCode, UserStatus
+from app.schemas.common_schema import PaginationSchema
 
 
 class RoleSchema(Schema):
@@ -19,3 +22,18 @@ class UserSchema(Schema):
     last_login_at = fields.DateTime(allow_none=True)
     created_at = fields.DateTime()
 
+
+class UserQuerySchema(Schema):
+    page = fields.Integer(load_default=1, validate=validate.Range(min=1))
+    page_size = fields.Integer(load_default=20, validate=validate.Range(min=1, max=100))
+    role = fields.String(validate=validate.OneOf(list(RoleCode)))
+    status = fields.String(validate=validate.OneOf(list(UserStatus)))
+    q = fields.String(
+        validate=validate.Length(max=100),
+        metadata={"description": "Tìm theo username, email hoặc họ tên"},
+    )
+
+
+class UserListSchema(Schema):
+    items = fields.List(fields.Nested(UserSchema))
+    pagination = fields.Nested(PaginationSchema)
