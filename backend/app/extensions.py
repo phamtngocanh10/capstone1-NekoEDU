@@ -1,7 +1,9 @@
 """Khởi tạo các extension ở đây, gắn vào app trong create_app()."""
 
 from flask_cors import CORS
+from flask_migrate import Migrate
 from flask_smorest import Api
+from flask_sqlalchemy import SQLAlchemy
 
 DEFAULT_ERROR_MESSAGES = {
     400: "Request không hợp lệ",
@@ -24,3 +26,5 @@ class NekoApi(Api):
 
 api = NekoApi()
 cors = CORS()
+db = SQLAlchemy()
+migrate = Migrate()

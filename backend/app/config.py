@@ -18,6 +18,10 @@ class Config:
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
     CORS_ORIGINS = _split_csv(os.getenv("CORS_ORIGINS", "http://localhost:5173"))
 
+    # Database (PostgreSQL)
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
+    SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
+
     # OpenAPI / Swagger UI (flask-smorest)
     API_TITLE = "NEKO Edu API"
     API_VERSION = "v1"
@@ -38,11 +42,14 @@ class TestingConfig(Config):
     ENV_NAME = "testing"
     TESTING = True
     SECRET_KEY = "test-secret-key"
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        "TEST_DATABASE_URL", "postgresql+psycopg://localhost:5432/neko_edu_test"
+    )
 
 
 class ProductionConfig(Config):
     ENV_NAME = "production"
-    # Production bắt buộc đặt SECRET_KEY qua biến môi trường, không dùng giá trị mặc định
+    # Production bắt buộc đặt các secret qua biến môi trường, không dùng giá trị mặc định
     SECRET_KEY = os.getenv("SECRET_KEY")
 
 
