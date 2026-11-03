@@ -1,5 +1,5 @@
 import createStore from '../../../../common/createStore'
-import { rowsOfCourse } from '../KhoaHoc/data'
+import { COURSES, rowsOfCourse } from '../KhoaHoc/data'
 
 // Dữ liệu mẫu theo Figma (13.0–13.5) — thay bằng src/api/grades.js khi có backend.
 // state: open (Đang mở) | closing (Sắp đóng) | notopen (Chưa mở) | closed (Đã đóng)
@@ -9,12 +9,18 @@ export const STATE = {
   notopen: { label: 'Chưa mở', tone: 'gray', bar: 'var(--divider)' },
   closed: { label: 'Đã đóng', tone: 'blue', bar: 'var(--success-fill)' },
 }
-export const COURSE_CARDS = [
-  { id: 'kindy', name: 'KINDY', meta: '16 lớp · 168 học viên', state: 'open', deadline: '16/09', published: 9, total: 16, term: 'Giữa kỳ T9', window: '10/09 08:00 → 16/09 23:59', release: 'Ngay khi GV xác nhận', note: 'Còn 2 ngày · đóng lúc 16/09/2026 23:59', avg: '8.4 / 10', left: '2 ngày', accent: 'var(--gradient)' },
-  { id: 'kid-teen', name: 'KID TEEN', meta: '18 lớp · 260 học viên', state: 'closing', deadline: '15/09', published: 12, total: 18, term: 'Giữa kỳ T9', window: '10/09 08:00 → 15/09 23:59', release: 'Ngay khi GV xác nhận', note: 'Còn 1 ngày · đóng lúc 15/09/2026 23:59', avg: '7.8 / 10', left: '1 ngày', accent: '#1a6fc9' },
-]
+export const COURSE_CARDS = COURSES.map((course) => ({
+  id: course.id, name: course.name, meta: `${course.classes} lớp · ${course.students} học viên`,
+  state: 'open', deadline: '16/09', published: Math.ceil(course.classes / 3), total: course.classes,
+  term: 'Giữa kỳ T9', window: '10/09 08:00 → 16/09 23:59', release: 'Ngay khi GV xác nhận',
+  note: 'Dữ liệu mẫu · đóng lúc 16/09/2026 23:59', avg: '—', left: '16/09', accent: course.accent,
+}))
 export const scoreStore = createStore(COURSE_CARDS)
-export const updateCard = (id, patch) => scoreStore.set((l) => l.map((c) => (c.id === id ? { ...c, ...patch } : c)))
+export function updateCard(id, changes) {
+  scoreStore.set((courses) => courses.map((course) => (
+    course.id === id ? { ...course, ...changes } : course
+  )))
+}
 
 export const PROGRESS_STATE = {
   published: { label: 'Đã công bố', tone: 'green' },
@@ -26,11 +32,22 @@ export const progressRows = (courseId) => rowsOfCourse(courseId).map((c, i) => (
   state: ['published', 'pending', 'empty'][i % 3], at: i % 3 === 0 ? '12/09 20:10' : '—', avg: i % 3 === 2 ? '—' : (7.2 + i * 0.3).toFixed(1),
 }))
 
-export const avg = (list) => {
-  const n = list.map(Number).filter((x) => !Number.isNaN(x))
-  return n.length ? Math.round((n.reduce((a, b) => a + b, 0) / n.length) * 10) / 10 : null
+export function avg(list) {
+  const scores = list.map(Number).filter((score) => !Number.isNaN(score))
+  if (scores.length === 0) return null
+  const total = scores.reduce((sum, score) => sum + score, 0)
+  return Math.round((total / scores.length) * 10) / 10
 }
-export const grade = (score) => (score === null ? null : score >= 9 ? ['Xuất sắc', 'green'] : score >= 8 ? ['Giỏi', 'blue'] : score >= 7 ? ['Giỏi', 'green'] : score >= 6 ? ['Khá', 'blue'] : score >= 5 ? ['TB', 'amber'] : ['Yếu', 'red'])
+
+export function grade(score) {
+  if (score === null) return null
+  if (score >= 9) return ['Xuất sắc', 'green']
+  if (score >= 8) return ['Giỏi', 'blue']
+  if (score >= 7) return ['Giỏi', 'green']
+  if (score >= 6) return ['Khá', 'blue']
+  if (score >= 5) return ['TB', 'amber']
+  return ['Yếu', 'red']
+}
 
 // Bảng điểm lớp (Figma 13.3): nghe, nói, đọc, viết
 export const SCORE_ROWS = [
@@ -41,14 +58,14 @@ export const SCORE_ROWS = [
 ].map(([id, name, ...s]) => ({ id, name, s }))
 
 // Nhập điểm (Figma 13.4): nghe, đọc, nói, viết — '' = chưa nhập
-const E = (name, s, note = '') => ({ name, s: s.map((x) => (x === null ? '' : Number(x).toFixed(1))), note })
+const createEntryRow = (name, s, note = '') => ({ name, s: s.map((x) => (x === null ? '' : Number(x).toFixed(1))), note })
 export const ENTRY_ROWS = [
-  E('Nguyễn Gia Bảo', [7.5, 6.5, 6.0, 6.5]), E('Đỗ Minh Anh', [6.0, 6.5, 5.5, 6.0]), E('Lê Thu Hà', [7.0, 7.5, 6.5, 7.0]),
-  E('Trần Quốc Việt', [5.5, 5.0, 5.0, 5.5], 'Cần luyện thêm Speaking'), E('Phạm Thu Uyên', [8.0, 7.5, 7.0, 7.5]), E('Vũ Đăng Khoa', [6.5, 6.0, 6.0, 6.5]),
-  E('Ngô Bảo Trâm', [6.0, 5.5, null, null]), E('Hoàng Kim Ngân', [9.5, 6.5, 6.0, 6.5]), E('Bùi Thanh Tú', [null, null, null, null]), E('Đặng Hồng Nhung', [null, null, null, null]),
-  ...['Lê Quang Huy', 'Trịnh Mai Anh', 'Phan Đức Tài', 'Võ Thị Lan', 'Nguyễn Hữu Phước', 'Đinh Khánh Vy', 'Cao Minh Triết', 'Lý Ngọc Hân'].map((n) => E(n, [null, null, null, null])),
+  createEntryRow('Nguyễn Gia Bảo', [7.5, 6.5, 6.0, 6.5]), createEntryRow('Đỗ Minh Anh', [6.0, 6.5, 5.5, 6.0]), createEntryRow('Lê Thu Hà', [7.0, 7.5, 6.5, 7.0]),
+  createEntryRow('Trần Quốc Việt', [5.5, 5.0, 5.0, 5.5], 'Cần luyện thêm Speaking'), createEntryRow('Phạm Thu Uyên', [8.0, 7.5, 7.0, 7.5]), createEntryRow('Vũ Đăng Khoa', [6.5, 6.0, 6.0, 6.5]),
+  createEntryRow('Ngô Bảo Trâm', [6.0, 5.5, null, null]), createEntryRow('Hoàng Kim Ngân', [9.5, 6.5, 6.0, 6.5]), createEntryRow('Bùi Thanh Tú', [null, null, null, null]), createEntryRow('Đặng Hồng Nhung', [null, null, null, null]),
+  ...['Lê Quang Huy', 'Trịnh Mai Anh', 'Phan Đức Tài', 'Võ Thị Lan', 'Nguyễn Hữu Phước', 'Đinh Khánh Vy', 'Cao Minh Triết', 'Lý Ngọc Hân'].map((n) => createEntryRow(n, [null, null, null, null])),
 ]
-export const ENTRY_CLASSES = ['KID TEEN 2A', 'KID TEEN 3B', 'KID TEEN 1B', 'KINDY 1A']
+export const ENTRY_CLASSES = ['KID 2A', 'KID 3B', 'KID 1B', 'KINDY 1A']
 export const EXAMS = ['Kiểm tra giữa kỳ', 'Kiểm tra cuối kỳ', 'Bài kiểm tra 15 phút']
 
 // Tải file điểm lên (Figma 13.5)

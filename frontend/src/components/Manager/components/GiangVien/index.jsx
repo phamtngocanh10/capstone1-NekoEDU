@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { Avatar, Btn, Card, Chip, DataTable, MiniStat, Pills } from '../../../../common/ui'
@@ -14,26 +14,41 @@ export default function GiangVien() {
   const lecturers = lecturerStore.use()
   const [filter, setFilter] = useState('all')
   const [adding, setAdding] = useState(false)
-  const rows = useMemo(() => lecturers.filter((l) => filter === 'all' || l.role === filter), [lecturers, filter])
-  const count = (st) => lecturers.filter((l) => l.status === st).length
+  const rows = lecturers.filter((lecturer) => filter === 'all' || lecturer.role === filter)
+  const count = (status) => lecturers.filter((lecturer) => lecturer.status === status).length
 
-  const add = (v) => {
+  const addNewLecturer = (values) => {
     addLecturer({
-      id: `GV${Date.now() % 1000000}`, name: v.fullName, cert: v.specialty, role: v.role, summary: 'Chưa có lớp', hours: 0, cells: [0, 0, 0, 0, 0, 0], status: 'none',
-      gender: v.gender, birth: v.birth, address: v.address, phone: v.phone, email: v.email, specialty: v.specialty, certificate: '—', contract: v.contract,
-      rate: Number(v.rate), joined: v.joined, account: 'Đã kích hoạt', monthHours: 0, rating: '—', punctual: '—',
+      id: `GV${Date.now() % 1000000}`, name: values.fullName, cert: values.specialty, role: values.role, summary: 'Chưa có lớp', hours: 0, cells: [0, 0, 0, 0, 0, 0], status: 'none',
+      gender: values.gender, birth: values.birth, address: values.address, phone: values.phone, email: values.email, specialty: values.specialty, certificate: '—', contract: values.contract,
+      rate: Number(values.rate), joined: values.joined, account: 'Đã kích hoạt', monthHours: 0, rating: '—', punctual: '—',
     })
     setAdding(false)
-    notify(`Đã thêm ${v.fullName}`)
+    notify(`Đã thêm ${values.fullName}`)
   }
 
   const columns = [
-    { key: 'name', label: 'Giảng viên', width: '21%', render: (l) => <div className="u-person"><Avatar name={l.name} initial="last" size={34} tone="soft" /><div><strong>{l.name}</strong><small>{l.cert}</small></div></div> },
-    { key: 'role', label: 'Vai trò', width: '12%', render: (l) => <Chip tone={l.role === 'lecturer' ? 'blue' : 'gray'}>{ROLE_LABEL[l.role]}</Chip> },
+    {
+      key: 'name', label: 'Giảng viên', width: '21%',
+      render: (lecturer) => (
+        <div className="u-person">
+          <Avatar name={lecturer.name} initial="last" size={34} tone="soft" />
+          <div><strong>{lecturer.name}</strong><small>{lecturer.cert}</small></div>
+        </div>
+      ),
+    },
+    { key: 'role', label: 'Vai trò', width: '12%', render: (lecturer) => <Chip tone={lecturer.role === 'lecturer' ? 'blue' : 'gray'}>{ROLE_LABEL[lecturer.role]}</Chip> },
     { key: 'summary', label: 'Đang phụ trách', width: '23%', className: 'u-tight' },
-    { key: 'hours', label: 'Giờ / tuần', width: '9%', render: (l) => <strong>{l.hours}h</strong> },
-    { key: 'cells', label: 'Lịch hôm nay', width: '17%', render: (l) => <div className="gv-cells">{l.cells.map((on, i) => <i key={i} className={on ? 'on' : ''} />)}</div> },
-    { key: 'status', label: 'Trạng thái', width: '14%', render: (l) => <Chip tone={STATUS[l.status].tone}>{STATUS[l.status].label}</Chip> },
+    { key: 'hours', label: 'Giờ / tuần', width: '9%', render: (lecturer) => <strong>{lecturer.hours}h</strong> },
+    {
+      key: 'cells', label: 'Lịch hôm nay', width: '17%',
+      render: (lecturer) => (
+        <div className="gv-cells">
+          {lecturer.cells.map((hasLesson, index) => <i key={index} className={hasLesson ? 'on' : ''} />)}
+        </div>
+      ),
+    },
+    { key: 'status', label: 'Trạng thái', width: '14%', render: (lecturer) => <Chip tone={STATUS[lecturer.status].tone}>{STATUS[lecturer.status].label}</Chip> },
   ]
 
   return (
@@ -50,10 +65,10 @@ export default function GiangVien() {
         <Btn icon={Plus} onClick={() => setAdding(true)}>Thêm giảng viên</Btn>
       </div>
       <Card>
-        <DataTable columns={columns} rows={rows} onRowClick={(l) => navigate(`/giangvien/${l.id}`)} />
+        <DataTable columns={columns} rows={rows} onRowClick={(lecturer) => navigate(`/giangvien/${lecturer.id}`)} />
         <p className="gv-note" style={{ marginTop: 12 }}>Mỗi ô nhỏ = 1 khung giờ trong ngày (07–09, 09–11, 13–15, 15–17, 17–19, 19–21)</p>
       </Card>
-      {adding && <LecturerFormModal onSubmit={add} onClose={() => setAdding(false)} />}
+      {adding && <LecturerFormModal onSubmit={addNewLecturer} onClose={() => setAdding(false)} />}
     </div>
   )
 }

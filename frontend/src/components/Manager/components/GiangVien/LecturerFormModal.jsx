@@ -20,7 +20,7 @@ const FIELDS = [
 // lecturer = undefined → Thêm giảng viên mới (Figma 12.1) ; có lecturer → Sửa thông tin (Figma 12.3)
 export default function LecturerFormModal({ lecturer, onSubmit, onClose }) {
   const editing = Boolean(lecturer)
-  const initial = editing
+  const initialValues = editing
     ? { fullName: lecturer.name, birth: lecturer.birth, gender: lecturer.gender, address: lecturer.address, phone: lecturer.phone, email: lecturer.email, role: lecturer.role, specialty: lecturer.specialty, contract: lecturer.contract, rate: String(lecturer.rate), joined: lecturer.joined }
     : { gender: 'Nam', role: 'lecturer', specialty: SPECIALTIES[0], contract: CONTRACTS[0], rate: '250000' }
   return (
@@ -28,7 +28,7 @@ export default function LecturerFormModal({ lecturer, onSubmit, onClose }) {
       title={editing ? 'Sửa thông tin giảng viên' : 'Thêm giảng viên mới'}
       subtitle={editing ? `Cập nhật hồ sơ ${lecturer.id} · ${lecturer.name}` : 'Tạo hồ sơ giảng viên / trợ giảng và cấp tài khoản đăng nhập'}
       fields={FIELDS}
-      initial={initial}
+      initial={initialValues}
       cancelVariant="ghost"
       submitLabel={editing ? 'Lưu thay đổi' : 'Lưu hồ sơ'}
       onSubmit={onSubmit}

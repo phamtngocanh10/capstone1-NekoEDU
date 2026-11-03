@@ -5,13 +5,21 @@ import { useSyncExternalStore } from 'react'
 export default function createStore(initial) {
   let state = initial
   const listeners = new Set()
-  const subscribe = (cb) => { listeners.add(cb); return () => listeners.delete(cb) }
+  function subscribe(listener) {
+    listeners.add(listener)
+    return () => listeners.delete(listener)
+  }
+
+  function setState(nextState) {
+    // Cho phép truyền giá trị mới hoặc hàm tính từ trạng thái hiện tại.
+    if (typeof nextState === 'function') state = nextState(state)
+    else state = nextState
+    listeners.forEach((listener) => listener())
+  }
+
   return {
     get: () => state,
-    set: (next) => {
-      state = typeof next === 'function' ? next(state) : next
-      listeners.forEach((l) => l())
-    },
+    set: setState,
     use: () => useSyncExternalStore(subscribe, () => state),
   }
 }

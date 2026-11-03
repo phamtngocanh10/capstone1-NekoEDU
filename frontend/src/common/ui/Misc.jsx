@@ -19,10 +19,10 @@ export function Notice({ tone = 'amber', title, children, className = '' }) {
 export function InfoGrid({ items, cols = 2 }) {
   return (
     <dl className="u-info" style={{ '--cols': cols }}>
-      {items.map((it) => (
-        <div key={it.label}>
-          <dt>{it.label}</dt>
-          <dd>{it.value}</dd>
+      {items.map((item) => (
+        <div key={item.label}>
+          <dt>{item.label}</dt>
+          <dd>{item.value}</dd>
         </div>
       ))}
     </dl>

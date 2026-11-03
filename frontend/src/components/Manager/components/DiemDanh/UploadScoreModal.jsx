@@ -10,7 +10,17 @@ import {
 import { Btn, CheckRow, DataTable, Dialog } from "../../../../common/ui";
 import { UPLOAD_ROWS } from "./data";
 
-const SHEETS = ["KID TEEN 2A (18)", "KID TEEN 3B (16)", "KINDY 1A (12)"];
+const SHEETS = ["KID 2A (18)", "KID 3B (16)", "KINDY 1A (12)"];
+const RESULT = {
+  ok: { Icon: Check, className: "u-good u-strong" },
+  warn: { Icon: TriangleAlert, className: "u-warn u-strong" },
+  err: { Icon: CircleX, className: "u-bad u-strong" },
+};
+
+function renderResult(row) {
+  const { Icon, className } = RESULT[row.res] ?? RESULT.err;
+  return <span className={className}><Icon size={12} /> {row.res === "ok" ? "Hợp lệ" : row.msg}</span>;
+}
 
 export default function UploadScoreModal({ onSubmit, onClose }) {
   const [sheet, setSheet] = useState(0);
@@ -22,11 +32,19 @@ export default function UploadScoreModal({ onSubmit, onClose }) {
   const [skip, setSkip] = useState(true);
   const importable = 39;
 
-  const scoreCell = (r, i) =>
-    r.bad === i ? (
-      <span className="bad">{r.s[i].toFixed(1)}</span>
+  function handleFileChange(event) {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) return;
+    const extension = selectedFile.name.split(".").pop().toUpperCase();
+    const sizeInKb = Math.max(1, Math.round(selectedFile.size / 1024));
+    setFile({ name: selectedFile.name, meta: `${extension} · ${sizeInKb} KB` });
+  }
+
+  const scoreCell = (row, index) =>
+    row.bad === index ? (
+      <span className="bad">{row.s[index].toFixed(1)}</span>
     ) : (
-      <strong>{r.s[i].toFixed(1)}</strong>
+      <strong>{row.s[index].toFixed(1)}</strong>
     );
   const columns = [
     { key: "line", label: "Dòng", width: "7%" },
@@ -35,32 +53,19 @@ export default function UploadScoreModal({ onSubmit, onClose }) {
       key: "name",
       label: "Họ tên",
       width: "20%",
-      render: (r) => <strong>{r.name}</strong>,
+      render: (row) => <strong>{row.name}</strong>,
     },
-    ...["Nghe", "Đọc", "Nói", "Viết"].map((label, i) => ({
+    ...["Nghe", "Đọc", "Nói", "Viết"].map((label, index) => ({
       key: label,
       label,
       width: "8%",
-      render: (r) => scoreCell(r, i),
+      render: (row) => scoreCell(row, index),
     })),
     {
       key: "res",
       label: "Kết quả",
       width: "27%",
-      render: (r) =>
-        r.res === "ok" ? (
-          <span className="u-good u-strong">
-            <Check size={12} /> Hợp lệ
-          </span>
-        ) : r.res === "warn" ? (
-          <span className="u-warn u-strong">
-            <TriangleAlert size={12} /> {r.msg}
-          </span>
-        ) : (
-          <span className="u-bad u-strong">
-            <CircleX size={12} /> {r.msg}
-          </span>
-        ),
+      render: renderResult,
     },
   ];
 
@@ -78,11 +83,11 @@ export default function UploadScoreModal({ onSubmit, onClose }) {
           </b>
           Chọn file
         </span>
-        <i />
+        <index />
         <span className="is-now">
           <b>2</b>Kiểm tra dữ liệu
         </span>
-        <i />
+        <index />
         <span>
           <b>3</b>Nhập vào hệ thống
         </span>
@@ -102,26 +107,19 @@ export default function UploadScoreModal({ onSubmit, onClose }) {
             type="file"
             hidden
             accept=".xlsx,.xls,.csv"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f)
-                setFile({
-                  name: f.name,
-                  meta: `${f.name.split(".").pop().toUpperCase()} · ${Math.max(1, Math.round(f.size / 1024))} KB`,
-                });
-            }}
+            onChange={handleFileChange}
           />
         </label>
       </div>
 
       <div className="u-row u-row--between" style={{ margin: "14px 0 0" }}>
         <div className="u-pills">
-          {SHEETS.map((s, i) => (
+          {SHEETS.map((s, index) => (
             <button
               key={s}
               type="button"
-              className={i === sheet ? "u-pill is-active" : "u-pill"}
-              onClick={() => setSheet(i)}
+              className={index === sheet ? "u-pill is-active" : "u-pill"}
+              onClick={() => setSheet(index)}
             >
               {s}
             </button>
@@ -157,9 +155,7 @@ export default function UploadScoreModal({ onSubmit, onClose }) {
           rows={UPLOAD_ROWS}
           rowKey="line"
           chevron={false}
-          rowClass={(r) =>
-            r.res === "warn" ? "is-warn" : r.res === "err" ? "is-err" : ""
-          }
+          rowClass={(row) => ({ warn: "is-warn", err: "is-err" })[row.res] ?? ""}
         />
       </div>
 

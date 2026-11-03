@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Sparkles } from 'lucide-react'
 import { Avatar, Btn, Card, CardHead, Chip, DataTable, MiniStat, Progress } from '../../../../common/ui'
 import { useManager } from '../../layout/ManagerContext'
@@ -7,12 +6,25 @@ import { Donut, HBars, LineChart, VBars } from './charts'
 import { ActionRow, Conf } from './parts'
 import * as D from './data'
 
-const toneOfProb = (p) => (p >= 70 ? D.G : p >= 45 ? D.A : D.R)
+function toneOfProb(probability) {
+  if (probability >= 70) return D.G
+  if (probability >= 45) return D.A
+  return D.R
+}
 
 export function TabTongQuan({ onTab }) {
   const { notify } = useManager()
   const [items, setItems] = useState(D.PROPOSALS.map((p) => ({ ...p, state: 'open' })))
-  const set = (id, state) => setItems((l) => l.map((p) => (p.id === id ? { ...p, state } : p)).filter((p) => p.state !== 'skip'))
+  function updateProposal(id, state) {
+    setItems((currentItems) => currentItems
+      .map((proposal) => proposal.id === id ? { ...proposal, state } : proposal)
+      .filter((proposal) => proposal.state !== 'skip'))
+  }
+
+  function acceptProposal(id) {
+    updateProposal(id, 'accepted')
+    notify('Đã chấp nhận đề xuất của AI')
+  }
   return (
     <>
       <div className="u-grid u-grid--4">
@@ -30,8 +42,16 @@ export function TabTongQuan({ onTab }) {
         ))}
       </div>
       <div className="ts-two">
-        <Card><CardHead title="Tỉ lệ tái đăng ký theo khóa học"><span className="u-bad" style={{ fontSize: 10.8, fontWeight: 700 }}>Mục tiêu 70% (vạch đỏ)</span></CardHead><HBars items={D.REENROLL} target={70} /></Card>
-        <Card><CardHead title="Tỉ lệ nghỉ học 6 tháng gần đây" /><LineChart points={D.DROPOUT_TREND} min={6} max={10} unit="%" /></Card>
+        <Card>
+          <CardHead title="Tỉ lệ tái đăng ký theo khóa học">
+            <span className="u-bad" style={{ fontSize: 10.8, fontWeight: 700 }}>Mục tiêu 70% (vạch đỏ)</span>
+          </CardHead>
+          <HBars items={D.REENROLL} target={70} />
+        </Card>
+        <Card>
+          <CardHead title="Tỉ lệ nghỉ học 6 tháng gần đây" />
+          <LineChart points={D.DROPOUT_TREND} min={6} max={10} unit="%" />
+        </Card>
       </div>
       <Card>
         <CardHead title="Đề xuất của AI đang chờ bạn"><span className="u-faint" style={{ fontSize: 10.8 }}>Nguồn: xu hướng tìm kiếm, giá thị trường, dữ liệu đăng ký và điểm danh của trung tâm</span></CardHead>
@@ -44,8 +64,8 @@ export function TabTongQuan({ onTab }) {
               <Conf value={p.conf} />
               {p.state === 'accepted' ? <Chip tone="green">Đã chấp nhận</Chip> : (
                 <>
-                  <Btn size="md" onClick={() => { set(p.id, 'accepted'); notify('Đã chấp nhận đề xuất của AI') }}>Chấp nhận</Btn>
-                  <Btn variant="ghost" size="md" onClick={() => set(p.id, 'skip')}>Bỏ qua</Btn>
+                  <Btn size="md" onClick={() => acceptProposal(p.id)}>Chấp nhận</Btn>
+                  <Btn variant="ghost" size="md" onClick={() => updateProposal(p.id, 'skip')}>Bỏ qua</Btn>
                 </>
               )}
             </div>
@@ -83,13 +103,15 @@ export function TabKhoa() {
           <ul className="ts-why">{D.BASIS.map((b) => <li key={b.t}><strong>{b.t}</strong><small>{b.d}</small></li>)}</ul>
         </Card>
       </div>
-      <Card><CardHead title="Hành động đề xuất cho khóa tiếp theo" />{D.NEXT_COURSE_ACTIONS.map((a) => <ActionRow key={a.title} {...a} />)}</Card>
+      <Card>
+        <CardHead title="Hành động đề xuất cho khóa tiếp theo" />
+        {D.NEXT_COURSE_ACTIONS.map((action) => <ActionRow key={action.title} {...action} />)}
+      </Card>
     </>
   )
 }
 
 export function TabThang() {
-  const weeks = [...D.WEEKS]
   const columns = [
     { key: 'w', label: 'Tuần', width: '20%', render: (r) => <strong>{r.w}</strong> },
     { key: 'lead', label: 'Lead dự kiến', width: '14%' }, { key: 'enroll', label: 'Ghi danh dự kiến', width: '16%', render: (r) => <strong style={{ color: 'var(--primary-2)' }}>{r.enroll}</strong> },
@@ -104,7 +126,12 @@ export function TabThang() {
         <MiniStat label="Chi phí / lead dự kiến" value="150.000đ" delta="−8%" accent={D.B} lg />
       </div>
       <div className="ts-main" style={{ gridTemplateColumns: 'minmax(0,1fr) 400px' }}>
-        <Card><CardHead title="Học viên mới theo tháng"><span className="u-link">Cột nhạt: AI dự báo</span></CardHead><VBars items={D.MONTHS.map((m, i) => ({ ...m, color: i === 5 ? '#9fd0ee' : D.B }))} max={44} /></Card>
+        <Card>
+          <CardHead title="Học viên mới theo tháng">
+            <span className="u-link">Cột nhạt: AI dự báo</span>
+          </CardHead>
+          <VBars items={D.MONTHS.map((month, index) => ({ ...month, color: index === 5 ? '#9fd0ee' : D.B }))} max={44} />
+        </Card>
         <Card>
           <CardHead title="Dự báo theo khóa (T10)" />
           <HBars items={D.BY_COURSE_T10} max={30} unit=" HV" />
@@ -113,7 +140,7 @@ export function TabThang() {
       </div>
       <Card>
         <CardHead title="Dự báo theo tuần và hành động đề xuất" />
-        <DataTable columns={columns} rows={weeks} rowKey="w" chevron={false} />
+        <DataTable columns={columns} rows={D.WEEKS} rowKey="w" chevron={false} />
         <table className="u-table"><tbody><tr className="ts-total"><td style={{ width: '20%' }}>Tổng</td><td style={{ width: '14%' }}>120</td><td style={{ width: '16%' }}>40</td><td /></tr></tbody></table>
       </Card>
     </>
@@ -137,7 +164,10 @@ export function TabNam() {
         <Card><CardHead title="Học viên mới theo tháng, năm 2027 (AI dự báo)"><span className="u-warn" style={{ fontSize: 10.8, fontWeight: 700 }}>Cam: mùa cao điểm</span></CardHead><VBars items={D.YEAR} max={70} /></Card>
         <Card><CardHead title="Kế hoạch theo quý" /><DataTable columns={columns} rows={D.QUARTERS} rowKey="q" chevron={false} /></Card>
       </div>
-      <Card><CardHead title="Đề xuất chiến lược năm 2027" />{D.STRATEGY.map((a) => <ActionRow key={a.title} {...a} />)}</Card>
+      <Card>
+        <CardHead title="Đề xuất chiến lược năm 2027" />
+        {D.STRATEGY.map((action) => <ActionRow key={action.title} {...action} />)}
+      </Card>
     </>
   )
 }

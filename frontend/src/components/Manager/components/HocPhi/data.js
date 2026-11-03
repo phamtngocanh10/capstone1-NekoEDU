@@ -1,10 +1,10 @@
 // Dữ liệu mẫu theo Figma (14.0–14.4) — thay bằng src/api/finance.js khi có backend.
 export const FEE_ROWS = [
-  { id: 'HV20260098', name: 'Trần Gia Bảo', className: 'KID TEEN 1B', fee: 3200000, paid: 0, due: '05/09/2026', status: 'overdue' },
-  { id: 'HV20260033', name: 'Ngô Bảo Trâm', className: 'KID TEEN 1B', fee: 3200000, paid: 1000000, due: '05/09/2026', status: 'overdue' },
-  { id: 'HV20260142b', name: 'Nguyễn Gia Bảo', className: 'KID TEEN 2A', fee: 2400000, paid: 0, due: '20/09/2026', status: 'soon' },
-  { id: 'HV20260098b', name: 'Đỗ Minh Anh', className: 'KID TEEN 3B', fee: 2800000, paid: 0, due: '22/09/2026', status: 'soon' },
-  { id: 'HV20260142', name: 'Nguyễn Minh Anh', className: 'KID TEEN 2A', fee: 2400000, paid: 2400000, due: '—', status: 'paid' },
+  { id: 'HV20260098', name: 'Trần Gia Bảo', className: 'KID 1B', fee: 3200000, paid: 0, due: '05/09/2026', status: 'overdue' },
+  { id: 'HV20260033', name: 'Ngô Bảo Trâm', className: 'KID 1B', fee: 3200000, paid: 1000000, due: '05/09/2026', status: 'overdue' },
+  { id: 'HV20260142b', name: 'Nguyễn Gia Bảo', className: 'KID 2A', fee: 2400000, paid: 0, due: '20/09/2026', status: 'soon' },
+  { id: 'HV20260098b', name: 'Đỗ Minh Anh', className: 'KID 3B', fee: 2800000, paid: 0, due: '22/09/2026', status: 'soon' },
+  { id: 'HV20260142', name: 'Nguyễn Minh Anh', className: 'KID 2A', fee: 2400000, paid: 2400000, due: '—', status: 'paid' },
 ]
 export const STATUS = {
   overdue: { label: 'Quá hạn', tone: 'red' },
@@ -16,11 +16,11 @@ export const FILTERS = [
 ]
 
 export const RISKS = [
-  { id: 'r1', name: 'Trần Gia Bảo', className: 'KID TEEN 1B', debt: 3200000, reason: 'Trễ hạn 2 kỳ liên tiếp' },
-  { id: 'r2', name: 'Ngô Bảo Trâm', className: 'KID TEEN 1B', debt: 2200000, reason: 'Còn nợ kỳ trước + sắp trễ hạn' },
-  { id: 'r3', name: 'Nguyễn Gia Bảo', className: 'KID TEEN 2A', debt: 2400000, reason: 'Sắp đến hạn, từng đóng muộn 1 lần' },
-  { id: 'r4', name: 'Đỗ Minh Anh', className: 'KID TEEN 3B', debt: 2800000, reason: 'Sắp đến hạn, phụ huynh chưa phản hồi nhắc' },
-  { id: 'r5', name: 'Lê Hoàng Phúc', className: 'KID TEEN 3B', debt: 4200000, reason: 'Trễ 1 kỳ, công nợ cộng dồn cao' },
+  { id: 'r1', name: 'Trần Gia Bảo', className: 'KID 1B', debt: 3200000, reason: 'Trễ hạn 2 kỳ liên tiếp' },
+  { id: 'r2', name: 'Ngô Bảo Trâm', className: 'KID 1B', debt: 2200000, reason: 'Còn nợ kỳ trước + sắp trễ hạn' },
+  { id: 'r3', name: 'Nguyễn Gia Bảo', className: 'KID 2A', debt: 2400000, reason: 'Sắp đến hạn, từng đóng muộn 1 lần' },
+  { id: 'r4', name: 'Đỗ Minh Anh', className: 'KID 3B', debt: 2800000, reason: 'Sắp đến hạn, phụ huynh chưa phản hồi nhắc' },
+  { id: 'r5', name: 'Lê Hoàng Phúc', className: 'KID 3B', debt: 4200000, reason: 'Trễ 1 kỳ, công nợ cộng dồn cao' },
 ]
 
 export const INVOICES = [

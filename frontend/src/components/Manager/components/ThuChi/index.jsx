@@ -6,17 +6,17 @@ import { useManager } from '../../layout/ManagerContext'
 import { lecturerStore } from '../GiangVien/data'
 
 const LEDGER = [
-  { id: 1, date: '14/09', title: 'Học phí tháng 9 — KID TEEN 1B', amount: 3200000 },
+  { id: 1, date: '14/09', title: 'Học phí tháng 9 — KID 1B', amount: 3200000 },
   { id: 2, date: '14/09', title: 'Thanh toán tiền điện nước', amount: -4500000 },
-  { id: 3, date: '13/09', title: 'Học phí tháng 9 — KID TEEN 2A', amount: 2400000 },
+  { id: 3, date: '13/09', title: 'Học phí tháng 9 — KID 2A', amount: 2400000 },
   { id: 4, date: '12/09', title: 'Mua tài liệu & học cụ', amount: -2100000 },
   { id: 5, date: '11/09', title: 'Học phí tháng 9 — KINDY 1A', amount: 2400000 },
   { id: 6, date: '10/09', title: 'Chi phí marketing tuyển sinh', amount: -6000000 },
-  { id: 7, date: '09/09', title: 'Học phí tháng 9 — KID TEEN 3B', amount: 2800000 },
+  { id: 7, date: '09/09', title: 'Học phí tháng 9 — KID 3B', amount: 2800000 },
   { id: 8, date: '08/09', title: 'Bảo trì máy chiếu P.202', amount: -1200000 },
 ]
 const CATEGORIES = ['Học phí', 'Điện nước', 'Lương', 'Marketing', 'Tài liệu & học cụ', 'Bảo trì', 'Khác']
-const tr = (n) => `${n.toFixed(1)}tr`
+const formatMillions = (amount) => `${amount.toFixed(1)}tr`
 const ROLE_NOTE = { lecturer: 'Giảng viên', assistant: 'Trợ giảng' }
 
 // Figma 15.0 (sổ thu chi + bảng lương) và 15.1 (thêm khoản thu / chi)
@@ -28,25 +28,48 @@ export default function ThuChi() {
   const [adding, setAdding] = useState(false)
   const [closed, setClosed] = useState(false)
 
-  const payroll = lecturers.map((l) => ({ ...l, pay: l.monthHours * l.rate }))
-  const payTotal = payroll.reduce((s, p) => s + p.pay, 0)
+  const payroll = lecturers.map((lecturer) => ({
+    ...lecturer,
+    pay: lecturer.monthHours * lecturer.rate,
+  }))
+  const payTotal = payroll.reduce((total, lecturer) => total + lecturer.pay, 0)
 
-  const add = (v) => {
-    const amount = Number(String(v.amount).replace(/\D/g, '')) || 0
-    const sign = v.type === 'income' ? 1 : -1
-    setLedger((l) => [{ id: Date.now(), date: v.date.slice(0, 5), title: v.note || v.category, amount: sign * amount }, ...l])
-    setTotals((t) => (v.type === 'income' ? { ...t, income: t.income + amount / 1e6 } : { ...t, expense: t.expense + amount / 1e6 }))
+  function addEntry(form) {
+    const amount = Number(String(form.amount).replace(/\D/g, '')) || 0
+    const isIncome = form.type === 'income'
+    const entry = {
+      id: Date.now(),
+      date: form.date.slice(0, 5),
+      title: form.note || form.category,
+      amount: isIncome ? amount : -amount,
+    }
+    setLedger((entries) => [entry, ...entries])
+    setTotals((currentTotals) => {
+      const field = isIncome ? 'income' : 'expense'
+      return { ...currentTotals, [field]: currentTotals[field] + amount / 1e6 }
+    })
     setAdding(false)
-    notify(`Đã ghi nhận ${v.type === 'income' ? 'khoản thu' : 'khoản chi'} ${vnd(amount)}`)
+    notify(`Đã ghi nhận ${isIncome ? 'khoản thu' : 'khoản chi'} ${vnd(amount)}`)
+  }
+
+  function closePayroll() {
+    setClosed(true)
+    notify('Đã chốt lương tháng 9')
+  }
+
+  function payrollStatus(lecturer) {
+    if (closed) return 'Đã chốt lương'
+    if (lecturer.monthHours) return 'Chờ chốt lương'
+    return 'Chưa có lớp'
   }
 
   return (
     <div className="u-page">
       <div className="u-grid u-grid--4">
-        <StatCard icon={Banknote} tone="green" accent="green" label="Thu tháng 9" value={tr(totals.income)} delta="+8%" deltaIcon={TrendingUp} />
-        <StatCard icon={TriangleAlert} tone="red" accent="red" label="Chi tháng 9" value={tr(totals.expense)} />
-        <StatCard icon={Users} tone="blue" accent="blue" label="Lương GV/TG tháng 9" value={tr(payTotal / 1e6)} />
-        <StatCard icon={Wallet} tone="amber" accent="amber" label="Lợi nhuận ước tính" value={tr(totals.income - totals.expense)} />
+        <StatCard icon={Banknote} tone="green" accent="green" label="Thu tháng 9" value={formatMillions(totals.income)} delta="+8%" deltaIcon={TrendingUp} />
+        <StatCard icon={TriangleAlert} tone="red" accent="red" label="Chi tháng 9" value={formatMillions(totals.expense)} />
+        <StatCard icon={Users} tone="blue" accent="blue" label="Lương GV/TG tháng 9" value={formatMillions(payTotal / 1e6)} />
+        <StatCard icon={Wallet} tone="amber" accent="amber" label="Lợi nhuận ước tính" value={formatMillions(totals.income - totals.expense)} />
       </div>
 
       <div className="tc-cols">
@@ -72,12 +95,20 @@ export default function ThuChi() {
               <colgroup><col style={{ width: '44%' }} /><col style={{ width: '12%' }} /><col style={{ width: '20%' }} /><col /></colgroup>
               <thead><tr><th>Giảng viên / Trợ giảng</th><th>Giờ dạy</th><th>Lương / giờ</th><th style={{ textAlign: 'right' }}>Thành tiền</th></tr></thead>
               <tbody>
-                {payroll.map((p) => (
-                  <tr key={p.id}>
-                    <td><div className="u-person"><Avatar name={p.name} initial="last" size={28} tone="soft" /><div><strong>{p.name}</strong><small>{ROLE_NOTE[p.role]} · {closed ? 'Đã chốt lương' : p.monthHours ? 'Chờ chốt lương' : 'Chưa có lớp'}</small></div></div></td>
-                    <td>{p.monthHours}h</td>
-                    <td>{vnd(p.rate)}</td>
-                    <td style={{ textAlign: 'right' }}><strong>{vnd(p.pay)}</strong></td>
+                {payroll.map((lecturer) => (
+                  <tr key={lecturer.id}>
+                    <td>
+                      <div className="u-person">
+                        <Avatar name={lecturer.name} initial="last" size={28} tone="soft" />
+                        <div>
+                          <strong>{lecturer.name}</strong>
+                          <small>{ROLE_NOTE[lecturer.role]} · {payrollStatus(lecturer)}</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{lecturer.monthHours}h</td>
+                    <td>{vnd(lecturer.rate)}</td>
+                    <td style={{ textAlign: 'right' }}><strong>{vnd(lecturer.pay)}</strong></td>
                   </tr>
                 ))}
               </tbody>
@@ -86,7 +117,7 @@ export default function ThuChi() {
           <div className="tc-total"><span>Tổng lương tháng 9</span><b>{vnd(payTotal)}</b></div>
           <p className="u-faint" style={{ margin: '6px 0 16px', fontSize: 11 }}>Giờ dạy tự động lấy từ Lịch và điểm danh; mức lương theo giờ đặt trong hồ sơ giảng viên.</p>
           <div className="u-row" style={{ justifyContent: 'flex-end' }}>
-            <Btn disabled={closed} onClick={() => { setClosed(true); notify('Đã chốt lương tháng 9') }}>{closed ? 'Đã chốt lương tháng 9' : 'Chốt lương tháng 9'}</Btn>
+            <Btn disabled={closed} onClick={closePayroll}>{closed ? 'Đã chốt lương tháng 9' : 'Chốt lương tháng 9'}</Btn>
           </div>
         </Card>
       </div>
@@ -107,7 +138,7 @@ export default function ThuChi() {
           submitLabel="Lưu khoản"
           submitIcon={CircleCheck}
           cancelVariant="ghost"
-          onSubmit={add}
+          onSubmit={addEntry}
           onClose={() => setAdding(false)}
         />
       )}

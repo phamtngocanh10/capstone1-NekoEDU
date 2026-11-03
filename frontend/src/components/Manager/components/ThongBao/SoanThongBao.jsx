@@ -1,12 +1,15 @@
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Bell, CircleCheck, Clock, Eye, Paperclip, Send, X } from 'lucide-react'
-import { Btn, Card, CheckRow, Chip, Dialog, Progress, Segmented, Switch } from '../../../../common/ui'
+import { Btn, Card, CheckRow, Chip, Dialog, Segmented, Switch } from '../../../../common/ui'
 import { todayText } from '../../../../common/format'
 import { usePageHeader, useManager } from '../../layout/ManagerContext'
 import { CLASS_TARGETS, TYPES, announceStore } from './data'
 
-const kb = (n) => (n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`)
+function formatFileSize(bytes) {
+  if (bytes > 1048576) return `${(bytes / 1048576).toFixed(1)} MB`
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`
+}
 
 // Figma 16.1 — Soạn thông báo mới (6 mục + xem trước phía học viên)
 export default function SoanThongBao() {
@@ -15,11 +18,11 @@ export default function SoanThongBao() {
   const { notify } = useManager()
   const fileRef = useRef(null)
   usePageHeader('Soạn thông báo mới', 'Hoàn thành lần lượt các mục 1 → 6 rồi gửi cho học viên')
-  const tpl = state?.template
-  const [title, setTitle] = useState(tpl?.title ?? '')
+  const template = state?.template
+  const [title, setTitle] = useState(template?.title ?? '')
   const [type, setType] = useState(TYPES[0])
   const [important, setImportant] = useState(false)
-  const [content, setContent] = useState(tpl?.content ?? '')
+  const [content, setContent] = useState(template?.content ?? '')
   const [files, setFiles] = useState([])
   const [target, setTarget] = useState('class')
   const [classes, setClasses] = useState(() => new Set([CLASS_TARGETS[0].name]))
@@ -31,27 +34,71 @@ export default function SoanThongBao() {
   const [mail, setMail] = useState(true)
   const [showPreview, setShowPreview] = useState(false)
 
-  const recipients = useMemo(() => {
-    if (target === 'all') return 428
-    if (target === 'student') return names.split(',').map((s) => s.trim()).filter(Boolean).length
-    return CLASS_TARGETS.filter((c) => classes.has(c.name)).reduce((s, c) => s + c.n, 0)
-  }, [target, classes, names])
-  const audience = target === 'all' ? 'Tất cả học viên' : target === 'student' ? 'Học viên được chọn' : `Lớp ${[...classes].join(', ')}`
+  let recipients = 428
+  let audience = 'Tất cả học viên'
+  if (target === 'student') {
+    recipients = names.split(',').map((name) => name.trim()).filter(Boolean).length
+    audience = 'Học viên được chọn'
+  } else if (target !== 'all') {
+    recipients = CLASS_TARGETS
+      .filter((classItem) => classes.has(classItem.name))
+      .reduce((total, classItem) => total + classItem.n, 0)
+    audience = `Lớp ${[...classes].join(', ')}`
+  }
 
-  const send = () => {
+  function send() {
     if (!title.trim() || !content.trim()) return notify('Vui lòng nhập tiêu đề và nội dung thông báo')
     if (recipients === 0) return notify('Vui lòng chọn người nhận')
     const later = when === 'later'
-    announceStore.set((l) => [{ id: `ann-${Date.now()}`, title: title.trim(), status: later ? 'scheduled' : 'sent', read: later ? null : 0, audience, meta: `${audience} · ${later ? `Hẹn giờ ${date} ${time}` : todayText()}${files.length ? ` · ${files.length} tệp` : ''}` }, ...l])
+    const sendTime = later ? `Hẹn giờ ${date} ${time}` : todayText()
+    const attachments = files.length ? ` · ${files.length} tệp` : ''
+    const announcement = {
+      id: `ann-${Date.now()}`,
+      title: title.trim(),
+      status: later ? 'scheduled' : 'sent',
+      read: later ? null : 0,
+      audience,
+      meta: `${audience} · ${sendTime}${attachments}`,
+    }
+    announceStore.set((items) => [announcement, ...items])
     notify(later ? 'Đã lên lịch gửi thông báo' : 'Đã gửi thông báo')
     navigate('/thongbao')
   }
-  const saveDraft = () => {
-    announceStore.set((l) => [{ id: `ann-${Date.now()}`, title: title.trim() || 'Bản nháp chưa đặt tên', status: 'draft', read: null, audience, meta: `${audience} · Chưa gửi` }, ...l])
+  function saveDraft() {
+    const draft = {
+      id: `ann-${Date.now()}`,
+      title: title.trim() || 'Bản nháp chưa đặt tên',
+      status: 'draft',
+      read: null,
+      audience,
+      meta: `${audience} · Chưa gửi`,
+    }
+    announceStore.set((items) => [draft, ...items])
     notify('Đã lưu bản nháp')
     navigate('/thongbao')
   }
-  const addFiles = (list) => setFiles((f) => [...f, ...[...list].map((x) => ({ name: x.name, kind: x.name.split('.').pop().toUpperCase(), size: kb(x.size) }))])
+  function addFiles(event) {
+    const addedFiles = Array.from(event.target.files).map((file) => ({
+      name: file.name,
+      kind: file.name.split('.').pop().toUpperCase(),
+      size: formatFileSize(file.size),
+    }))
+    setFiles((currentFiles) => [...currentFiles, ...addedFiles])
+    event.target.value = ''
+  }
+
+  function removeFile(index) {
+    setFiles((currentFiles) => currentFiles.filter((file, fileIndex) => fileIndex !== index))
+  }
+
+  function selectClass(className, selected) {
+    setClasses((currentClasses) => {
+      const nextClasses = new Set(currentClasses)
+      if (selected) nextClasses.add(className)
+      else nextClasses.delete(className)
+      return nextClasses
+    })
+  }
 
   return (
     <div className="u-page">
@@ -59,7 +106,7 @@ export default function SoanThongBao() {
         <div className="cp-col">
           <Card className="cp-sec">
             <h4><b>1</b>Tiêu đề thông báo <span className="u-bad">*</span><em>{title.length} / 120</em></h4>
-            <div className="u-control"><input value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} placeholder="VD: Lịch thi giữa kỳ KID TEEN 2A" aria-label="Tiêu đề thông báo" /></div>
+            <div className="u-control"><input value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} placeholder="VD: Lịch thi giữa kỳ KID 2A" aria-label="Tiêu đề thông báo" /></div>
           </Card>
 
           <Card className="cp-sec">
@@ -90,7 +137,7 @@ export default function SoanThongBao() {
               <Paperclip size={20} />
               Kéo thả tệp vào đây hoặc chọn từ máy tính
               <small>PDF, DOCX, XLSX, PNG, JPG</small>
-              <input ref={fileRef} type="file" hidden multiple onChange={(e) => { addFiles(e.target.files); e.target.value = '' }} />
+              <input ref={fileRef} type="file" hidden multiple onChange={addFiles} />
             </label>
             <div className="cp-files">
               {files.map((f, i) => (
@@ -98,7 +145,7 @@ export default function SoanThongBao() {
                   <span className="exp-file__icon"><Paperclip size={14} /></span>
                   <div className="u-grow"><strong>{f.name}</strong><small>{f.kind} · {f.size}</small></div>
                   <span className="u-good u-strong" style={{ fontSize: 11 }}>✓ Đã tải lên</span>
-                  <button type="button" aria-label={`Xóa ${f.name}`} onClick={() => setFiles((l) => l.filter((_, j) => j !== i))}><X size={14} /></button>
+                  <button type="button" aria-label={`Xóa ${f.name}`} onClick={() => removeFile(i)}><X size={14} /></button>
                 </div>
               ))}
             </div>
@@ -113,7 +160,7 @@ export default function SoanThongBao() {
               <div className="cp-classes">
                 <span className="u-field__label">Chọn lớp nhận thông báo</span>
                 {CLASS_TARGETS.map((c) => (
-                  <CheckRow key={c.name} checked={classes.has(c.name)} onChange={(on) => setClasses((s) => { const n = new Set(s); on ? n.add(c.name) : n.delete(c.name); return n })}>
+                  <CheckRow key={c.name} checked={classes.has(c.name)} onChange={(selected) => selectClass(c.name, selected)}>
                     <span className="u-grow">{c.name}</span><small>{c.n} học viên</small>
                   </CheckRow>
                 ))}

@@ -16,12 +16,13 @@ apiClient.interceptors.request.use((config) => {
 
 // Xử lý lỗi chung: hết phiên đăng nhập (401) thì quay về /login.
 apiClient.interceptors.response.use(
-  (res) => res,
+  (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem("access_token");
-      if (window.location.pathname !== "/login")
+      if (window.location.pathname !== "/login") {
         window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   },

@@ -1,9 +1,20 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { BookOpen, Calendar } from 'lucide-react'
 import { Btn, DayToggles, Dialog, RadioChips, SelectField, TextField } from '../../../../common/ui'
 import { ASSIGNABLE, ASSIGN_SLOTS, TEACHING } from './data'
 
-const hoursOf = (slot) => { const [a, b] = slot.split(' – ').map((t) => parseInt(t, 10)); return b - a }
+function hoursOf(slot) {
+  const [start, end] = slot.split(' – ').map((time) => parseInt(time, 10))
+  return end - start
+}
+
+function slotLabel(slot) {
+  const hour = parseInt(slot, 10)
+  let period = 'Tối'
+  if (hour < 12) period = 'Sáng'
+  else if (hour < 17) period = 'Chiều'
+  return `${slot} · ${period}`
+}
 
 // Figma 12.5 — Phân công lớp học cho giảng viên, có kiểm tra trùng lịch & tổng giờ dạy.
 export default function AssignClassModal({ lecturer, onSubmit, onClose }) {
@@ -15,16 +26,22 @@ export default function AssignClassModal({ lecturer, onSubmit, onClose }) {
   const meta = ASSIGNABLE.find((c) => c.value === cls)
 
   const pickClass = (value) => {
-    const m = ASSIGNABLE.find((c) => c.value === value)
-    setCls(value); setDays(m.days); setSlot(ASSIGN_SLOTS.find((s) => s === m.slot) ?? ASSIGN_SLOTS[0])
+    const classInfo = ASSIGNABLE.find((classItem) => classItem.value === value)
+    setCls(value)
+    setDays(classInfo.days)
+    setSlot(ASSIGN_SLOTS.find((slot) => slot === classInfo.slot) ?? ASSIGN_SLOTS[0])
   }
 
-  const slotLabel = slot.replace(' – ', '–')
-  const { conflicts, total } = useMemo(() => {
-    const busy = (TEACHING[lecturer.id] ?? []).filter((r) => r.days && r.slot === slot)
-    const hit = busy.map((r) => ({ name: r.name, days: r.days.filter((d) => days.includes(d)) })).filter((r) => r.days.length)
-    return { conflicts: hit, total: lecturer.hours + days.length * hoursOf(slot) }
-  }, [lecturer, slot, days])
+  const timeLabel = slot.replace(' – ', '–')
+  const teachingClasses = TEACHING[lecturer.id] ?? []
+  const conflicts = teachingClasses
+    .filter((classItem) => classItem.days && classItem.slot === slot)
+    .map((classItem) => ({
+      name: classItem.name,
+      days: classItem.days.filter((day) => days.includes(day)),
+    }))
+    .filter((classItem) => classItem.days.length > 0)
+  const total = lecturer.hours + days.length * hoursOf(slot)
 
   const blocked = conflicts.length > 0 || days.length === 0
 
@@ -35,16 +52,16 @@ export default function AssignClassModal({ lecturer, onSubmit, onClose }) {
         <RadioChips label="Vai trò" cols={2} value={role} onChange={setRole} options={[{ value: 'lecturer', label: 'Giảng viên' }, { value: 'assistant', label: 'Trợ giảng' }]} />
         <TextField label="Ngày bắt đầu" icon={Calendar} value={start} onChange={(e) => setStart(e.target.value)} />
         <DayToggles label="Lịch dạy trong tuần" shape="box" value={days} onChange={setDays} />
-        <SelectField label="Khung giờ" icon={Calendar} full options={ASSIGN_SLOTS.map((s) => ({ value: s, label: `${s} · ${parseInt(s, 10) < 12 ? 'Sáng' : parseInt(s, 10) < 17 ? 'Chiều' : 'Tối'}` }))} value={slot} onChange={(e) => setSlot(e.target.value)} />
+        <SelectField label="Khung giờ" icon={Calendar} full options={ASSIGN_SLOTS.map((slot) => ({ value: slot, label: slotLabel(slot) }))} value={slot} onChange={(e) => setSlot(e.target.value)} />
       </div>
 
       <div className="as-check">
         <h5>Kiểm tra lịch &amp; phòng</h5>
         <ul>
-          <li className="is-ok"><i />Phòng {meta.room} còn trống khung {slotLabel}</li>
-          {conflicts.map((c) => <li key={c.name} className="is-bad"><i />Trùng lịch {c.days.join(', ')} {slotLabel}: đang dạy {c.name}</li>)}
-          <li className="is-ok"><i />Tổng giờ dạy sau phân công: {total} / 24 giờ mỗi tuần</li>
-          {conflicts.length > 0 && <li className="is-tip">Gợi ý: Lê Anh Dũng đang rảnh {conflicts[0].days.join(', ')} {slotLabel}</li>}
+          <li className="is-ok"><i />Phòng {meta.room} còn trống khung {timeLabel}</li>
+          {conflicts.map((classItem) => <li key={classItem.name} className="is-bad"><i />Trùng lịch {classItem.days.join(', ')} {timeLabel}: đang dạy {classItem.name}</li>)}
+          <li className="is-ok"><i />Tổng giờ dạy sau phân công: {total} giờ mỗi tuần</li>
+          {conflicts.length > 0 && <li className="is-tip">Gợi ý: Lê Anh Dũng đang rảnh {conflicts[0].days.join(', ')} {timeLabel}</li>}
         </ul>
       </div>
 

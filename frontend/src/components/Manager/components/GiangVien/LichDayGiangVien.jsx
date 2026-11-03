@@ -10,9 +10,9 @@ export default function LichDayGiangVien() {
   const { lecturerId } = useParams()
   const navigate = useNavigate()
   const lecturers = lecturerStore.use()
-  const lecturer = lecturers.find((l) => l.id === lecturerId) ?? LECTURERS[0]
-  const classes = (TEACHING[lecturer.id] ?? []).length
-  usePageHeader('Lịch dạy giảng viên', `Lịch dạy theo tuần · ${classes} lớp · ${lecturer.hours} giờ mỗi tuần`)
+  const lecturer = lecturers.find((item) => item.id === lecturerId) ?? LECTURERS[0]
+  const classCount = (TEACHING[lecturer.id] ?? []).length
+  usePageHeader('Lịch dạy giảng viên', `Lịch dạy theo tuần · ${classCount} lớp · ${lecturer.hours} giờ mỗi tuần`)
   const plan = SCHEDULE[lecturer.id] ?? {}
 
   return (
@@ -22,7 +22,7 @@ export default function LichDayGiangVien() {
         <label className="gv-sel">
           <Avatar name={lecturer.name} initial="last" size={26} tone="soft" />
           <select value={lecturer.id} onChange={(e) => navigate(`/giangvien/${e.target.value}/lich`)} aria-label="Chọn giảng viên">
-            {lecturers.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            {lecturers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
           <ChevronDown size={15} className="u-faint" />
         </label>
@@ -32,8 +32,8 @@ export default function LichDayGiangVien() {
       </div>
       <Card>
         <WeekGrid
-          renderCell={(slot, di) => {
-            const lesson = plan[slot]?.[di]
+          renderCell={(slot, dayIndex) => {
+            const lesson = plan[slot]?.[dayIndex]
             return lesson ? <LessonTile time={slot} {...lesson} /> : <EmptyCell slot={slot} />
           }}
         />

@@ -5,7 +5,10 @@ import Btn from './Btn'
 import { CheckRow, DayToggles, PasswordField, RadioChips, SelectField, TextAreaField, TextField } from './Fields'
 import { DropZone } from './Misc'
 
-const isEmpty = (v) => (Array.isArray(v) ? v.length === 0 : String(v ?? '').trim() === '')
+function isEmpty(value) {
+  if (Array.isArray(value)) return value.length === 0
+  return String(value ?? '').trim() === ''
+}
 
 /**
  * Modal form theo cấu hình. fields: [{ name, label, type, icon, placeholder, options, full, required, hint }]
@@ -16,68 +19,84 @@ export default function FormModal({
   cancelVariant = 'muted', size, onSubmit, onClose,
 }) {
   // fields có thể là mảng hoặc hàm (values) => mảng, dùng cho ô phụ thuộc nhau (vd. Khóa học → Lớp học).
-  // f.resets: danh sách ô sẽ về giá trị đầu tiên khi ô này đổi.
-  const build = (v) => (typeof fields === 'function' ? fields(v) : fields)
-  const [values, setValues] = useState(() => ({
-    ...Object.fromEntries(build({}).map((f) => [f.name, f.type === 'days' ? [] : ''])),
-    ...initial,
-  }))
+  // field.resets: danh sách ô sẽ về giá trị đầu tiên khi ô này đổi.
+  function getFields(currentValues) {
+    return typeof fields === 'function' ? fields(currentValues) : fields
+  }
+
+  const [values, setValues] = useState(() => {
+    const defaults = {}
+    for (const field of getFields({})) {
+      defaults[field.name] = field.type === 'days' ? [] : ''
+    }
+    return { ...defaults, ...initial }
+  })
   const [errors, setErrors] = useState({})
-  const list = build(values)
-  const set = (name, v) => {
-    setValues((s) => {
-      const next = { ...s, [name]: v }
-      for (const r of build(s).find((f) => f.name === name)?.resets ?? []) {
-        const first = build(next).find((f) => f.name === r)?.options?.[0]
-        next[r] = first === undefined ? '' : typeof first === 'string' ? first : first.value
+  const visibleFields = getFields(values)
+
+  function updateField(name, value) {
+    setValues((currentValues) => {
+      const nextValues = { ...currentValues, [name]: value }
+      const changedField = getFields(currentValues).find((field) => field.name === name)
+
+      for (const dependentName of changedField?.resets ?? []) {
+        const dependentField = getFields(nextValues).find((field) => field.name === dependentName)
+        const firstOption = dependentField?.options?.[0]
+        let defaultValue = ''
+        if (typeof firstOption === 'string') defaultValue = firstOption
+        else if (firstOption !== undefined) defaultValue = firstOption.value
+        nextValues[dependentName] = defaultValue
       }
-      return next
+      return nextValues
     })
-    setErrors((e) => ({ ...e, [name]: false }))
+    setErrors((currentErrors) => ({ ...currentErrors, [name]: false }))
   }
 
-  const submit = (e) => {
-    e.preventDefault()
-    const bad = Object.fromEntries(list.filter((f) => f.required && isEmpty(values[f.name])).map((f) => [f.name, true]))
-    setErrors(bad)
-    if (Object.keys(bad).length === 0) onSubmit(values)
+  function handleSubmit(event) {
+    event.preventDefault()
+    const requiredErrors = {}
+    for (const field of visibleFields) {
+      if (field.required && isEmpty(values[field.name])) requiredErrors[field.name] = true
+    }
+    setErrors(requiredErrors)
+    if (Object.keys(requiredErrors).length === 0) onSubmit(values)
   }
 
-  const renderField = (f) => {
-    const common = { label: f.label, required: f.required, full: f.full, hint: f.hint, error: errors[f.name] }
-    const bind = { value: values[f.name], onChange: (e) => set(f.name, e.target.value) }
-    switch (f.type) {
+  const renderField = (field) => {
+    const common = { label: field.label, required: field.required, full: field.full, hint: field.hint, error: errors[field.name] }
+    const bind = { value: values[field.name], onChange: (e) => updateField(field.name, e.target.value) }
+    switch (field.type) {
       case 'select':
-        return <SelectField {...common} icon={f.icon} options={f.options} placeholder={f.placeholder} {...bind} />
+        return <SelectField {...common} icon={field.icon} options={field.options} placeholder={field.placeholder} {...bind} />
       case 'radio':
-        return <RadioChips key={f.name} label={f.label} options={f.options} cols={f.cols} full={f.full} value={values[f.name]} onChange={(v) => set(f.name, v)} />
+        return <RadioChips key={field.name} label={field.label} options={field.options} cols={field.cols} full={field.full} value={values[field.name]} onChange={(value) => updateField(field.name, value)} />
       case 'textarea':
-        return <TextAreaField {...common} full={f.full ?? true} placeholder={f.placeholder} {...bind} />
+        return <TextAreaField {...common} full={field.full ?? true} placeholder={field.placeholder} {...bind} />
       case 'days':
-        return <DayToggles key={f.name} label={f.label} full={f.full ?? true} value={values[f.name]} onChange={(v) => set(f.name, v)} />
+        return <DayToggles key={field.name} label={field.label} full={field.full ?? true} value={values[field.name]} onChange={(value) => updateField(field.name, value)} />
       case 'file':
         return (
-          <div key={f.name} className="u-field u-field--full">
-            {f.label && <span className="u-field__label">{f.label}</span>}
-            <DropZone light title={f.placeholder} hint={f.hint} onFiles={(files) => set(f.name, files[0].name)} />
-            {values[f.name] && <span className="u-field__hint">Đã chọn: {values[f.name]}</span>}
+          <div key={field.name} className="u-field u-field--full">
+            {field.label && <span className="u-field__label">{field.label}</span>}
+            <DropZone light title={field.placeholder} hint={field.hint} onFiles={(files) => updateField(field.name, files[0].name)} />
+            {values[field.name] && <span className="u-field__hint">Đã chọn: {values[field.name]}</span>}
           </div>
         )
       case 'check':
-        return <div key={f.name} className="u-field u-field--full"><CheckRow checked={Boolean(values[f.name])} onChange={(v) => set(f.name, v)}>{f.label}</CheckRow></div>
+        return <div key={field.name} className="u-field u-field--full"><CheckRow checked={Boolean(values[field.name])} onChange={(value) => updateField(field.name, value)}>{field.label}</CheckRow></div>
       case 'password':
-        return <PasswordField {...common} icon={f.icon} placeholder={f.placeholder} autoComplete="new-password" {...bind} />
+        return <PasswordField {...common} icon={field.icon} placeholder={field.placeholder} autoComplete="new-password" {...bind} />
       case 'date':
-        return <TextField {...common} icon={f.icon ?? Calendar} placeholder={f.placeholder ?? 'dd/mm/yyyy'} inputMode="numeric" {...bind} />
+        return <TextField {...common} icon={field.icon ?? Calendar} placeholder={field.placeholder ?? 'dd/mm/yyyy'} inputMode="numeric" {...bind} />
       default:
-        return <TextField {...common} icon={f.icon} type={f.type === 'number' ? 'number' : 'text'} placeholder={f.placeholder} {...bind} />
+        return <TextField {...common} icon={field.icon} type={field.type === 'number' ? 'number' : 'text'} placeholder={field.placeholder} {...bind} />
     }
   }
 
   return (
     <Dialog title={title} subtitle={subtitle} size={size} onClose={onClose}>
-      <form onSubmit={submit} noValidate>
-        <div className="u-form">{list.map((f) => <Fragment key={f.name}>{renderField(f)}</Fragment>)}</div>
+      <form onSubmit={handleSubmit} noValidate>
+        <div className="u-form">{visibleFields.map((field) => <Fragment key={field.name}>{renderField(field)}</Fragment>)}</div>
         <div className="u-modal__foot">
           <Btn variant={cancelVariant} size="sq" onClick={onClose}>Hủy</Btn>
           <button type="submit" className="u-btn u-btn--primary u-btn--sq">

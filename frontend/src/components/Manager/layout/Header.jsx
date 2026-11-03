@@ -8,10 +8,10 @@ import AvatarMenu from './AvatarMenu'
 export default function Header() {
   const { pathname } = useLocation()
   const { header } = useManager()
-  const current = [...MENU, ...EXTRA_PAGES].find((m) => pathname.startsWith(m.path))
+  const currentPage = [...MENU, ...EXTRA_PAGES].find((page) => pathname.startsWith(page.path))
   // Trang con đặt tiêu đề riêng bằng usePageHeader(); trang chính lấy từ menu.js
-  const title = header?.title ?? current?.label ?? 'NEKO EDU'
-  const subtitle = header ? header.subtitle : current?.subtitle
+  const title = header?.title ?? currentPage?.label ?? 'NEKO EDU'
+  const subtitle = header ? header.subtitle : currentPage?.subtitle
 
   return (
     <header className="header">

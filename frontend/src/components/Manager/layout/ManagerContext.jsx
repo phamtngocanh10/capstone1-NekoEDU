@@ -12,20 +12,39 @@ const INITIAL_USER = {
   joined: '03/2023',
 }
 
-export function ManagerProvider({ children }) {
-  const [user, setUser] = useState(INITIAL_USER)
+export function ManagerProvider({ children, initialUser = INITIAL_USER }) {
+  const [user, setUser] = useState(() => {
+    if (initialUser !== INITIAL_USER) return initialUser
+    try {
+      const account = JSON.parse(localStorage.getItem('neko-auth-user'))
+      return account?.role === 'Manager' ? { ...INITIAL_USER, ...account } : initialUser
+    } catch { return initialUser }
+  })
   const [pwOpen, setPwOpen] = useState(false)
   const [toast, setToast] = useState(null)
   const [header, setHeader] = useState(null) // tiêu đề riêng của trang con, đặt bằng usePageHeader()
 
-  const updateUser = useCallback((patch) => setUser((u) => ({ ...u, ...patch })), [])
+  const updateUser = useCallback((changes) => {
+    setUser((currentUser) => ({ ...currentUser, ...changes }))
+  }, [])
   const openPasswordModal = useCallback(() => setPwOpen(true), [])
   const closePasswordModal = useCallback(() => setPwOpen(false), [])
   const notify = useCallback((message) => setToast(message), [])
   const clearToast = useCallback(() => setToast(null), [])
 
   const value = useMemo(
-    () => ({ user, updateUser, pwOpen, openPasswordModal, closePasswordModal, toast, notify, clearToast, header, setHeader }),
+    () => ({
+      user,
+      updateUser,
+      pwOpen,
+      openPasswordModal,
+      closePasswordModal,
+      toast,
+      notify,
+      clearToast,
+      header,
+      setHeader,
+    }),
     [user, updateUser, pwOpen, openPasswordModal, closePasswordModal, toast, notify, clearToast, header],
   )
   return <ManagerContext.Provider value={value}>{children}</ManagerContext.Provider>
@@ -33,9 +52,9 @@ export function ManagerProvider({ children }) {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function useManager() {
-  const ctx = useContext(ManagerContext)
-  if (!ctx) throw new Error('useManager phải nằm trong <ManagerProvider>')
-  return ctx
+  const context = useContext(ManagerContext)
+  if (!context) throw new Error('useManager phải nằm trong <ManagerProvider>')
+  return context
 }
 
 export const shortName = (name) => name.trim().split(/\s+/).slice(-2).join(' ')

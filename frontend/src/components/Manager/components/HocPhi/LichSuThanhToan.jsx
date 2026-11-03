@@ -14,16 +14,21 @@ export default function LichSuThanhToan() {
   const { state } = useLocation()
   const { notify } = useManager()
   usePageHeader('Lịch sử thanh toán', 'Hóa đơn và các lần thanh toán của học viên')
-  const student = state?.student ?? { name: 'Nguyễn Minh Anh', id: 'HV20260142', className: 'KID TEEN 2A' }
+  const student = state?.student ?? { name: 'Nguyễn Minh Anh', id: 'HV20260142', className: 'KID 2A' }
   const [invoices, setInvoices] = useState(INVOICES)
   const [collecting, setCollecting] = useState(false)
-  const unpaid = invoices.filter((i) => i.status !== 'paid')
-  const totalPaid = invoices.filter((i) => i.status === 'paid').reduce((s, i) => s + i.amount, 0)
+  const unpaid = invoices.filter((invoice) => invoice.status !== 'paid')
+  const totalPaid = invoices
+    .filter((invoice) => invoice.status === 'paid')
+    .reduce((total, invoice) => total + invoice.amount, 0)
 
-  const collect = (v) => {
-    setInvoices((l) => l.map((i) => (i.id === v.invoice ? { ...i, status: 'paid', paidAt: v.date, method: v.method } : i)))
+  function collectPayment(form) {
+    setInvoices((currentInvoices) => currentInvoices.map((invoice) => {
+      if (invoice.id !== form.invoice) return invoice
+      return { ...invoice, status: 'paid', paidAt: form.date, method: form.method }
+    }))
     setCollecting(false)
-    notify(`Đã ghi nhận thu ${vnd(money(v.amount))} của ${student.name}`)
+    notify(`Đã ghi nhận thu ${vnd(money(form.amount))} của ${student.name}`)
   }
 
   const columns = [
@@ -79,7 +84,7 @@ export default function LichSuThanhToan() {
           submitLabel="Xác nhận thu"
           submitIcon={CircleCheck}
           cancelVariant="ghost"
-          onSubmit={collect}
+          onSubmit={collectPayment}
           onClose={() => setCollecting(false)}
         />
       )}

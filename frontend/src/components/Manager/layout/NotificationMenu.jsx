@@ -22,14 +22,20 @@ export default function NotificationMenu() {
   const ref = useRef(null)
   useClickOutside(ref, () => setOpen(false), open)
 
-  const unread = items.filter((n) => n.unread).length
-  const markAll = () => setItems((l) => l.map((n) => ({ ...n, unread: false })))
+  const unreadCount = items.filter((notification) => notification.unread).length
+
+  function markAllAsRead() {
+    setItems((notifications) => notifications.map((notification) => ({
+      ...notification,
+      unread: false,
+    })))
+  }
 
   return (
     <div className="menu-wrap" ref={ref}>
-      <button className="bell" aria-label="Thông báo" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+      <button className="bell" aria-label="Thông báo" aria-expanded={open} onClick={() => setOpen((isOpen) => !isOpen)}>
         <Bell size={17} />
-        {unread > 0 && <span className="badge">{unread}</span>}
+        {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
       </button>
 
       {open && (
@@ -38,9 +44,9 @@ export default function NotificationMenu() {
           <div className="np" role="dialog" aria-label="Thông báo">
             <div className="np__head">
               <strong>Thông báo</strong>
-              <button type="button" className="u-link" onClick={markAll}>Đánh dấu đã đọc</button>
+              <button type="button" className="u-link" onClick={markAllAsRead}>Đánh dấu đã đọc</button>
             </div>
-            {items.slice(0, 3).map(({ id, type, title, time, unread: u }) => {
+            {items.slice(0, 3).map(({ id, type, title, time, unread }) => {
               const [Icon, tone] = ICONS[type]
               return (
                 <div key={id} className="np__item">
@@ -49,7 +55,7 @@ export default function NotificationMenu() {
                     <strong>{title}</strong>
                     <small>{time}</small>
                   </div>
-                  {u && <i className="np__dot" aria-label="Chưa đọc" />}
+                  {unread && <i className="np__dot" aria-label="Chưa đọc" />}
                 </div>
               )
             })}

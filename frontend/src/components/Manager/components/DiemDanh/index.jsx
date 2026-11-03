@@ -17,17 +17,12 @@ export default function DiemSo() {
   const navigate = useNavigate();
   const { notify } = useManager();
   const cards = scoreStore.use();
-  const [setup, setSetup] = useState(null);
+  const [selectedCourse, setSelectedCourse] = useState(null);
 
-  const save = (v) => {
-    updateCard(v.id, {
-      term: v.term,
-      window: v.window,
-      deadline: v.deadline,
-      release: v.release,
-      note: v.note,
-    });
-    setSetup(null);
+  const saveSettings = (values) => {
+    const { id, ...settings } = values;
+    updateCard(id, settings);
+    setSelectedCourse(null);
     notify("Đã lưu thiết lập thời gian điểm số");
   };
 
@@ -36,7 +31,7 @@ export default function DiemSo() {
       key: "name",
       label: "Khóa học",
       width: "17%",
-      render: (c) => <strong>{c.name}</strong>,
+      render: (course) => <strong>{course.name}</strong>,
     },
     { key: "term", label: "Kỳ điểm", width: "11%" },
     {
@@ -44,9 +39,9 @@ export default function DiemSo() {
       label: "Thời gian nhập điểm (giảng viên)",
       width: "24%",
       className: "u-tight",
-      render: (c) => (
+      render: (course) => (
         <span className="u-strong" style={{ fontWeight: 500 }}>
-          {c.window}
+          {course.window}
         </span>
       ),
     },
@@ -60,16 +55,16 @@ export default function DiemSo() {
       key: "progress",
       label: "Tiến độ",
       width: "13%",
-      render: (c) => (
+      render: (course) => (
         <div className="ds-prog">
           <Progress
-            value={c.published}
-            max={c.total}
-            color={STATE[c.state].bar}
-            label={`Đã công bố ${c.published}/${c.total}`}
+            value={course.published}
+            max={course.total}
+            color={STATE[course.state].bar}
+            label={`Đã công bố ${course.published}/${course.total}`}
           />
           <b>
-            {c.published}/{c.total}
+            {course.published}/{course.total}
           </b>
         </div>
       ),
@@ -78,29 +73,29 @@ export default function DiemSo() {
       key: "state",
       label: "Trạng thái",
       width: "12%",
-      render: (c) => (
-        <Chip tone={STATE[c.state].tone}>{STATE[c.state].label}</Chip>
+      render: (course) => (
+        <Chip tone={STATE[course.state].tone}>{STATE[course.state].label}</Chip>
       ),
     },
     {
       key: "actions",
       label: "Thao tác",
       width: "10%",
-      render: (c) => (
+      render: (course) => (
         <span onClick={(e) => e.stopPropagation()}>
-          {c.state === "closed" ? (
+          {course.state === "closed" ? (
             <Btn
               variant="ghost"
               size="md"
               onClick={() => {
-                updateCard(c.id, { state: "open" });
-                notify(`Đã mở lại nhập điểm khóa ${c.name}`);
+                updateCard(course.id, { state: "open" });
+                notify(`Đã mở lại nhập điểm khóa ${course.name}`);
               }}
             >
               Mở lại
             </Btn>
           ) : (
-            <Btn variant="soft" size="md" onClick={() => setSetup(c)}>
+            <Btn variant="soft" size="md" onClick={() => setSelectedCourse(course)}>
               Thiết lập
             </Btn>
           )}
@@ -112,34 +107,34 @@ export default function DiemSo() {
   return (
     <div className="u-page">
       <div className="u-grid u-grid--4">
-        {cards.map((c) => (
+        {cards.map((course) => (
           <button
-            key={c.id}
+            key={course.id}
             type="button"
             className="ds-course"
-            style={{ "--accent": c.accent }}
-            onClick={() => navigate(`/diemdanh/khoahoc/${c.id}`)}
+            style={{ "--accent": course.accent }}
+            onClick={() => navigate(`/diemdanh/khoahoc/${course.id}`)}
           >
             <div className="ds-course__top">
               <span className="u-stat__icon">
                 <BookOpen size={16} />
               </span>
               <div>
-                <strong>{c.name}</strong>
-                <small>{c.meta}</small>
+                <strong>{course.name}</strong>
+                <small>{course.meta}</small>
               </div>
             </div>
             <div className="ds-course__row">
-              <Chip tone={STATE[c.state].tone}>{STATE[c.state].label}</Chip>
-              <span>Hạn {c.deadline}</span>
+              <Chip tone={STATE[course.state].tone}>{STATE[course.state].label}</Chip>
+              <span>Hạn {course.deadline}</span>
             </div>
             <span className="u-muted" style={{ fontSize: 11 }}>
-              Đã công bố {c.published} / {c.total} lớp
+              Đã công bố {course.published} / {course.total} lớp
             </span>
             <Progress
-              value={c.published}
-              max={c.total}
-              color={STATE[c.state].bar}
+              value={course.published}
+              max={course.total}
+              color={STATE[course.state].bar}
               label="Tiến độ công bố"
             />
           </button>
@@ -148,7 +143,7 @@ export default function DiemSo() {
 
       <Card>
         <CardHead title="Lịch nhập điểm theo khóa học">
-          <Btn icon={Plus} size="md" onClick={() => setSetup(cards[0])}>
+          <Btn icon={Plus} size="md" onClick={() => setSelectedCourse(cards[0])}>
             Thiết lập thời gian
           </Btn>
         </CardHead>
@@ -156,7 +151,7 @@ export default function DiemSo() {
           columns={columns}
           rows={cards}
           chevron={false}
-          onRowClick={(c) => navigate(`/diemdanh/khoahoc/${c.id}`)}
+          onRowClick={(course) => navigate(`/diemdanh/khoahoc/${course.id}`)}
         />
       </Card>
       <p className="u-faint" style={{ fontSize: 11.5, padding: "0 8px" }}>
@@ -164,11 +159,11 @@ export default function DiemSo() {
         vào khóa học để xem tiến độ từng lớp
       </p>
 
-      {setup && (
+      {selectedCourse && (
         <ThietLapModal
-          course={setup}
-          onSubmit={save}
-          onClose={() => setSetup(null)}
+          course={selectedCourse}
+          onSubmit={saveSettings}
+          onClose={() => setSelectedCourse(null)}
         />
       )}
     </div>

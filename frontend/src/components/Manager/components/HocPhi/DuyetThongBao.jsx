@@ -9,6 +9,11 @@ export default function DuyetThongBao() {
   const { notify } = useManager()
   usePageHeader('Duyệt thông báo học phí tháng 10', 'Xem trước nội dung trước khi gửi tới học viên đang học')
 
+  function confirmSend() {
+    notify('Đã lên lịch gửi thông báo học phí tháng 10')
+    navigate('/hocphi')
+  }
+
   return (
     <div className="u-page">
       <BackLink to="/hocphi">Học phí</BackLink>
@@ -23,7 +28,7 @@ export default function DuyetThongBao() {
       </Card>
       <div className="u-row">
         <Btn variant="soft" size="md" onClick={() => notify('Đã gửi bản xem thử vào email của bạn')}>Gửi thử cho tôi</Btn>
-        <Btn size="md" onClick={() => { notify('Đã lên lịch gửi thông báo học phí tháng 10'); navigate('/hocphi') }}>Xác nhận gửi</Btn>
+        <Btn size="md" onClick={confirmSend}>Xác nhận gửi</Btn>
       </div>
     </div>
   )

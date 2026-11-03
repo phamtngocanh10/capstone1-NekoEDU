@@ -2,16 +2,16 @@
 export default function Pills({ items, value, onChange, large, className = '' }) {
   return (
     <div className={['u-pills', large && 'u-pills--lg', className].filter(Boolean).join(' ')} role="tablist">
-      {items.map((it) => (
+      {items.map((item) => (
         <button
-          key={it.value}
+          key={item.value}
           type="button"
           role="tab"
-          aria-selected={value === it.value}
-          className={value === it.value ? 'u-pill is-active' : 'u-pill'}
-          onClick={() => onChange(it.value)}
+          aria-selected={value === item.value}
+          className={value === item.value ? 'u-pill is-active' : 'u-pill'}
+          onClick={() => onChange(item.value)}
         >
-          {it.label}
+          {item.label}
         </button>
       ))}
     </div>
@@ -22,14 +22,14 @@ export default function Pills({ items, value, onChange, large, className = '' })
 export function Segmented({ items, value, onChange }) {
   return (
     <div className="u-seg">
-      {items.map((it) => (
+      {items.map((item) => (
         <button
-          key={it.value}
+          key={item.value}
           type="button"
-          className={value === it.value ? `is-active ${it.danger ? 'is-danger' : ''}` : ''}
-          onClick={() => onChange(it.value)}
+          className={value === item.value ? `is-active ${item.danger ? 'is-danger' : ''}` : ''}
+          onClick={() => onChange(item.value)}
         >
-          {it.label}
+          {item.label}
         </button>
       ))}
     </div>

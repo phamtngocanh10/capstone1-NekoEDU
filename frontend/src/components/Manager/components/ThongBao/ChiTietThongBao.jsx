@@ -13,6 +13,12 @@ export default function ChiTietThongBao() {
   const item = announceStore.use().find((a) => a.id === id) ?? announceStore.get()[3]
   const total = 23
   const read = Math.round((total * (item.read ?? 0)) / 100)
+  const unread = total - read
+
+  function duplicateAnnouncement() {
+    const template = { title: item.title, content: DETAIL_TEXT }
+    navigate('/thongbao/soan', { state: { template } })
+  }
 
   const columns = [
     { key: 'name', label: 'Học viên', width: '32%', render: (r) => <div className="u-person"><Avatar name={r.name} size={30} tone="soft" /><strong>{r.name}</strong></div> },
@@ -31,14 +37,14 @@ export default function ChiTietThongBao() {
           <Chip tone="red">Quan trọng</Chip>
           <p>{item.audience} · {item.meta.split(' · ').slice(1).join(' · ')} · Người gửi: Ngọc Anh (Manager)</p>
         </div>
-        <Btn variant="ghost" onClick={() => navigate('/thongbao/soan', { state: { template: { title: item.title, content: DETAIL_TEXT } } })}>Nhân bản</Btn>
-        <Btn disabled={total - read === 0} onClick={() => notify(`Đã gửi lại cho ${total - read} người chưa đọc`)}>Gửi lại cho người chưa đọc ({total - read})</Btn>
+        <Btn variant="ghost" onClick={duplicateAnnouncement}>Nhân bản</Btn>
+        <Btn disabled={unread === 0} onClick={() => notify(`Đã gửi lại cho ${unread} người chưa đọc`)}>Gửi lại cho người chưa đọc ({unread})</Btn>
       </Card>
 
       <div className="u-grid u-grid--4">
         <MiniStat label="Đã gửi" value={total} lg />
         <MiniStat label="Đã đọc" value={`${read} · ${item.read ?? 0}%`} tone="success" lg />
-        <MiniStat label="Chưa đọc" value={total - read} tone="danger-text" lg />
+        <MiniStat label="Chưa đọc" value={unread} tone="danger-text" lg />
         <MiniStat label="Phản hồi từ phụ huynh" value={REPLIES.length} tone="info" lg />
       </div>
 

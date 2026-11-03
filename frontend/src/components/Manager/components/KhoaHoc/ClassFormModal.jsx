@@ -5,7 +5,7 @@ import { COURSES, LECTURER_NAMES, ROOMS, TIME_SLOTS } from './data'
 const FIELDS = [
   { name: 'course', label: 'Khóa học', type: 'select', icon: BookOpen, options: COURSES.map((c) => c.name) },
   { name: 'teacher', label: 'Giảng viên phụ trách', type: 'select', icon: UserCheck, options: LECTURER_NAMES, placeholder: 'Chưa chọn' },
-  { name: 'name', label: 'Tên lớp học', icon: BookOpen, placeholder: 'VD: KINDY 1C hoặc KID TEEN 2C', required: true, full: true },
+  { name: 'name', label: 'Tên lớp học', icon: BookOpen, placeholder: 'VD: KINDY 1C hoặc KID 2C', required: true, full: true },
   { name: 'room', label: 'Phòng học', type: 'select', icon: MapPin, options: ROOMS, placeholder: 'Chưa chọn' },
   { name: 'cap', label: 'Sĩ số tối đa', type: 'number', icon: Users, placeholder: '20' },
   { name: 'days', label: 'Lịch học trong tuần', type: 'days' },

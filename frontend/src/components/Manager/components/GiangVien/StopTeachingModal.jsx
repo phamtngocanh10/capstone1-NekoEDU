@@ -6,10 +6,14 @@ import { LECTURERS, TEACHING } from './data'
 // Figma 12.7 — Ngừng giảng dạy: bắt buộc chọn giảng viên thay thế cho từng lớp đang phụ trách.
 export default function StopTeachingModal({ lecturer, onConfirm, onClose }) {
   const classes = TEACHING[lecturer.id] ?? []
-  const options = LECTURERS.filter((l) => l.id !== lecturer.id && l.role === lecturer.role && l.status !== 'stopped')
-  const [picks, setPicks] = useState(() => Object.fromEntries(classes.map((c, i) => [c.id, i === 1 ? '' : options[0]?.name ?? ''])))
+  const options = LECTURERS.filter((candidate) => candidate.id !== lecturer.id && candidate.role === lecturer.role && candidate.status !== 'stopped')
+  const [picks, setPicks] = useState(() => Object.fromEntries(classes.map((classItem, i) => [classItem.id, i === 1 ? '' : options[0]?.name ?? ''])))
   const [notify, setNotify] = useState(true)
-  const ready = classes.every((c) => picks[c.id])
+  const ready = classes.every((classItem) => picks[classItem.id])
+
+  function selectTeacher(classId, teacherName) {
+    setPicks((currentPicks) => ({ ...currentPicks, [classId]: teacherName }))
+  }
 
   return (
     <Dialog title="Ngừng giảng dạy" subtitle="Giảng viên sẽ không còn nhận lớp mới, hồ sơ được lưu trữ" onClose={onClose}>
@@ -22,13 +26,13 @@ export default function StopTeachingModal({ lecturer, onConfirm, onClose }) {
           </div>
         </div>
       )}
-      {classes.map((c) => (
-        <div key={c.id} className={picks[c.id] ? 'stop-row' : 'stop-row is-missing'}>
-          <div><strong>{c.name}</strong><small>{c.schedule}</small></div>
+      {classes.map((classItem) => (
+        <div key={classItem.id} className={picks[classItem.id] ? 'stop-row' : 'stop-row is-missing'}>
+          <div><strong>{classItem.name}</strong><small>{classItem.schedule}</small></div>
           <div className="u-control">
-            <select value={picks[c.id]} onChange={(e) => setPicks((p) => ({ ...p, [c.id]: e.target.value }))} aria-label={`Giảng viên thay thế lớp ${c.name}`}>
+            <select value={picks[classItem.id]} onChange={(e) => selectTeacher(classItem.id, e.target.value)} aria-label={`Giảng viên thay thế lớp ${classItem.name}`}>
               <option value="">Chọn giảng viên thay thế</option>
-              {options.map((o) => <option key={o.id} value={o.name}>{o.name}</option>)}
+              {options.map((option) => <option key={option.id} value={option.name}>{option.name}</option>)}
             </select>
             <ChevronDown size={14} />
           </div>

@@ -1,7 +1,8 @@
-// Dữ liệu mẫu theo Figma (10-manager-khoa-hoc-lop-hoc, 10.1, 10.2) — thay bằng src/api/courses.js khi có backend.
-export const COURSES = [
-  { id: 'kindy', name: 'KINDY', desc: 'Tiếng Anh mầm non · Level 1–3', classes: 16, students: 168, open: 13, soon: 2, avgSize: '10.5 / 12', accent: 'var(--gradient)' },
-  { id: 'kid-teen', name: 'KID TEEN', desc: 'Tiếng Anh thiếu nhi & thiếu niên · Level 1–3', classes: 18, students: 260, open: 14, soon: 3, avgSize: '14.4 / 18', accent: '#1a6fc9' },
+// Dữ liệu dùng chung cho Manager và Giảng viên — thay bằng src/api/courses.js khi có backend.
+const COURSE_DEFINITIONS = [
+  { id: 'kindy', name: 'KINDY', desc: 'Tiếng Anh mầm non · Level 1–3', accent: 'var(--gradient)' },
+  { id: 'kid', name: 'KID', desc: 'Tiếng Anh thiếu nhi · Level 1–3', accent: '#1a6fc9' },
+  { id: 'teen', name: 'TEEN', desc: 'Tiếng Anh thiếu niên · Level 1–3', accent: '#299b70' },
 ]
 export const LEVELS = [1, 2, 3]
 export const courseById = (id) => COURSES.find((c) => c.id === id) ?? COURSES[0]
@@ -19,25 +20,48 @@ export const FILTERS = [
   { value: 'soon', label: 'Sắp khai giảng' },
   { value: 'ended', label: 'Đã kết thúc' },
 ]
-export const matchStatus = (filter, status) => filter === 'all' || (filter === 'open' ? status === 'open' || status === 'full' : status === filter)
+export function matchStatus(filter, status) {
+  if (filter === 'all') return true
+  if (filter === 'open') return status === 'open' || status === 'full'
+  return status === filter
+}
 
-const mk = (id, name, courseId, teacher, room, days, listTime, range, size, cap, status, latest = 'done') => ({ id, name, courseId, teacher, room, days, listTime, range, size, cap, status, latest })
+const createClass = (id, name, courseId, teacher, room, days, listTime, range, size, cap, status, latest = 'done') => ({ id, name, courseId, level: Number(name.match(/ (\d)/)?.[1]), teacher, room, days, listTime, range, size, cap, status, latest })
 
-// Danh sách lớp ở trang Khóa học & Lớp học. Tên lớp = <KHÓA> <LEVEL><NHÓM>, ví dụ KINDY 1A, KID TEEN 2B.
+// Ba khóa riêng biệt KINDY, KID, TEEN; mỗi khóa có Level 1, 2, 3 và nhóm lớp A/B.
 export const CLASSES = [
-  mk('kindy-1a', 'KINDY 1A', 'kindy', 'Phạm Thu Hà', 'P.108', 'T2-T3-T5-T6', '15:00', '15:00–17:00', 12, 12, 'full'),
-  mk('kindy-1b', 'KINDY 1B', 'kindy', 'Phạm Thu Hà', 'P.105', 'T3-T5', '09:00', '09:00–11:00', 10, 12, 'open'),
-  mk('kindy-2a', 'KINDY 2A', 'kindy', 'Lê Anh Dũng', 'P.301', 'T2-T4-T6', '09:00', '09:00–11:00', 12, 12, 'full'),
-  mk('kindy-2b', 'KINDY 2B', 'kindy', 'Phạm Thu Hà', 'P.105', 'T7-CN', '07:00', '07:00–09:00', 10, 12, 'open'),
-  mk('kindy-3a', 'KINDY 3A', 'kindy', 'Lê Anh Dũng', 'P.301', 'T7', '07:00', '07:00–09:00', 9, 12, 'open'),
-  mk('kindy-3b', 'KINDY 3B', 'kindy', 'Trần Minh Khôi', 'P.202', 'T2', '15:00', '15:00–17:00', 11, 12, 'open'),
-  mk('kid-teen-1a', 'KID TEEN 1A', 'kid-teen', 'Lê Anh Dũng', 'P.301', 'T3-T5', '09:00', '09:00–11:00', 20, 20, 'full', 'todo'),
-  mk('kid-teen-1b', 'KID TEEN 1B', 'kid-teen', 'Lê Anh Dũng', 'P.301', 'T2-T5', '13:00', '13:00–15:00', 16, 20, 'open'),
-  mk('kid-teen-2a', 'KID TEEN 2A', 'kid-teen', 'Trần Minh Khôi', 'P.203', 'T2-T4-T6', '17:00', '17:00–19:00', 18, 20, 'open'),
-  mk('kid-teen-2b', 'KID TEEN 2B', 'kid-teen', 'Phạm Thu Hà', 'P.105', 'T2-T4-T6', '17:30', '17:30–19:00', 14, 15, 'open'),
-  mk('kid-teen-3a', 'KID TEEN 3A', 'kid-teen', 'Trần Minh Khôi', 'P.202', 'T3-T5-T7', '17:00', '17:00–19:00', 5, 20, 'soon', null),
-  mk('kid-teen-3b', 'KID TEEN 3B', 'kid-teen', 'Trần Minh Khôi', 'P.203', 'T2-T4', '13:00', '13:00–15:00', 16, 18, 'open'),
+  createClass('kindy-1a', 'KINDY 1A', 'kindy', 'Phạm Thu Hà', 'P.108', 'T2-T3-T5-T6', '15:00', '15:00–17:00', 12, 12, 'full'),
+  createClass('kindy-1b', 'KINDY 1B', 'kindy', 'Phạm Thu Hà', 'P.105', 'T3-T5', '09:00', '09:00–11:00', 10, 12, 'open'),
+  createClass('kindy-2a', 'KINDY 2A', 'kindy', 'Lê Anh Dũng', 'P.301', 'T2-T4-T6', '09:00', '09:00–11:00', 12, 12, 'full'),
+  createClass('kindy-2b', 'KINDY 2B', 'kindy', 'Phạm Thu Hà', 'P.105', 'T7-CN', '07:00', '07:00–09:00', 10, 12, 'open'),
+  createClass('kindy-3a', 'KINDY 3A', 'kindy', 'Lê Anh Dũng', 'P.301', 'T7', '07:00', '07:00–09:00', 9, 12, 'open'),
+  createClass('kindy-3b', 'KINDY 3B', 'kindy', 'Trần Minh Khôi', 'P.202', 'T2', '15:00', '15:00–17:00', 11, 12, 'open'),
+  createClass('kid-1a', 'KID 1A', 'kid', 'Lê Anh Dũng', 'P.301', 'T3-T5', '09:00', '09:00–11:00', 20, 20, 'full', 'todo'),
+  createClass('kid-1b', 'KID 1B', 'kid', 'Lê Anh Dũng', 'P.301', 'T2-T5', '13:00', '13:00–15:00', 16, 20, 'open'),
+  createClass('kid-2a', 'KID 2A', 'kid', 'Trần Minh Khôi', 'P.203', 'T2-T4-T6', '17:00', '17:00–19:00', 18, 20, 'open'),
+  createClass('kid-2b', 'KID 2B', 'kid', 'Phạm Thu Hà', 'P.105', 'T2-T4-T6', '17:30', '17:30–19:00', 14, 15, 'open'),
+  createClass('kid-3a', 'KID 3A', 'kid', 'Trần Minh Khôi', 'P.202', 'T3-T5-T7', '17:00', '17:00–19:00', 5, 20, 'soon', null),
+  createClass('kid-3b', 'KID 3B', 'kid', 'Trần Minh Khôi', 'P.203', 'T2-T4', '13:00', '13:00–15:00', 16, 18, 'open'),
+  createClass('teen-1a', 'TEEN 1A', 'teen', 'Trần Minh Khôi', 'P.203', 'T2-T4-T6', '19:00', '19:00–21:00', 18, 20, 'open'),
+  createClass('teen-1b', 'TEEN 1B', 'teen', 'Đặng Quốc Bảo', 'P.204', 'T2-T4-T6', '07:00', '07:00–09:00', 16, 20, 'open'),
+  createClass('teen-2a', 'TEEN 2A', 'teen', 'Trần Minh Khôi', 'P.203', 'T3-T5', '19:00', '19:00–21:00', 17, 20, 'open'),
+  createClass('teen-2b', 'TEEN 2B', 'teen', 'Đặng Quốc Bảo', 'P.204', 'T3-T5', '15:00', '15:00–17:00', 14, 20, 'open'),
+  createClass('teen-3a', 'TEEN 3A', 'teen', 'Trần Minh Khôi', 'P.203', 'T7', '15:00', '15:00–17:00', 15, 20, 'open'),
+  createClass('teen-3b', 'TEEN 3B', 'teen', 'Đặng Quốc Bảo', 'P.301', 'T7-CN', '09:00', '09:00–11:00', 12, 20, 'open'),
 ]
+export const COURSES = COURSE_DEFINITIONS.map((course) => {
+  const classes = CLASSES.filter((classItem) => classItem.courseId === course.id)
+  const students = classes.reduce((total, classItem) => total + classItem.size, 0)
+  return {
+    ...course,
+    levels: LEVELS,
+    classes: classes.length,
+    students,
+    open: classes.filter((classItem) => classItem.status === 'open' || classItem.status === 'full').length,
+    soon: classes.filter((classItem) => classItem.status === 'soon').length,
+    avgSize: `${(students / classes.length).toFixed(1)} / ${Math.max(...classes.map((classItem) => classItem.cap))}`,
+  }
+})
 export const rowsOfCourse = (courseId) => CLASSES.filter((c) => c.courseId === courseId)
 export const findClass = (id) => CLASSES.find((c) => c.id === id) ?? CLASSES[0]
 

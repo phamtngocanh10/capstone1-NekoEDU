@@ -9,7 +9,7 @@ import {
   mondayOf, monthLabel, toIso, weekDays, weekLabel, weekdayIndex,
 } from './data'
 import { EmptyCell, WeekGrid, WeekLegend, dotClass } from './WeekGrid'
-import { cancelClass, markAttended, useSchedule } from './store'
+import { cancelClass, useSchedule } from './store'
 import CancelClassModal from './CancelClassModal'
 
 // Figma 11 (lưới tuần) + 11.1 (mở rộng khung giờ) + 11.3 (hủy lớp) — thêm chế độ xem Ngày / Tuần / Tháng.
@@ -24,8 +24,17 @@ const isCurrent = (mode, anchor) => {
   if (mode === 'week') return toIso(mondayOf(anchor)) === toIso(mondayOf(MOCK_TODAY))
   return anchor.getFullYear() === MOCK_TODAY.getFullYear() && anchor.getMonth() === MOCK_TODAY.getMonth()
 }
-const shift = (mode, anchor, dir) => (mode === 'day' ? addDays(anchor, dir) : mode === 'week' ? addDays(anchor, 7 * dir) : addMonths(anchor, dir))
-const titleOf = (mode, anchor) => (mode === 'day' ? dayLabel(anchor) : mode === 'week' ? weekLabel(anchor) : monthLabel(anchor))
+function shift(mode, anchor, direction) {
+  if (mode === 'day') return addDays(anchor, direction)
+  if (mode === 'week') return addDays(anchor, 7 * direction)
+  return addMonths(anchor, direction)
+}
+
+function titleOf(mode, anchor) {
+  if (mode === 'day') return dayLabel(anchor)
+  if (mode === 'week') return weekLabel(anchor)
+  return monthLabel(anchor)
+}
 
 export default function LichPhanCong() {
   const navigate = useNavigate()
@@ -40,42 +49,60 @@ export default function LichPhanCong() {
   const menuRef = useRef(null)
   useClickOutside(menuRef, () => setMenu(false), menu)
 
-  const toggle = (key) => setExpanded((s) => { const n = new Set(s); n.has(key) ? n.delete(key) : n.add(key); return n })
-  const open = (cls) => navigate(`/lichphancong/${cls.iso}?slot=${cls.slot}`)
-  const pickMode = (m) => { setMode(m); setMenu(false) }
-  const goDay = (d) => { setAnchor(d); setMode('day') }
-  const current = MODES.find((m) => m.value === mode)
+  function toggleSlot(key) {
+    setExpanded((currentKeys) => {
+      const nextKeys = new Set(currentKeys)
+      if (nextKeys.has(key)) nextKeys.delete(key)
+      else nextKeys.add(key)
+      return nextKeys
+    })
+  }
+  const openSlot = (cls) => navigate(`/lichphancong/${cls.iso}?slot=${cls.slot}`)
+  function pickMode(value) {
+    setMode(value)
+    setMenu(false)
+  }
+  function goDay(date) {
+    setAnchor(date)
+    setMode('day')
+  }
+  function confirmCancellation({ reason }) {
+    cancelClass(target.id, reason)
+    setTarget(null)
+    notify(`Đã hủy lớp ${target.name}`)
+  }
+  const current = MODES.find((modeItem) => modeItem.value === mode)
 
-  const classRow = (c, slot, withCancel = true) => (
-    <div key={c.id} className={`wk-class is-${c.status}`} onClick={() => open(c)}>
-      <b>{c.time ?? slot}</b>
-      <strong>{c.name}</strong>
-      <small>{c.room} · {lastWord(c.teacher)}</small>
-      {c.status === 'upcoming' && withCancel && (
-        <button type="button" className="wk-cancel" onClick={(e) => { e.stopPropagation(); setTarget(c) }}>Hủy lớp</button>
+  const renderClassRow = (lesson, slot, withCancel = true) => (
+    <div key={lesson.id} className={`wk-class is-${lesson.status}`} onClick={() => openSlot(lesson)}>
+      <b>{lesson.time ?? slot}</b>
+      <strong>{lesson.name}</strong>
+      <small>{lesson.room} · {lastWord(lesson.teacher)}</small>
+      {lesson.status === 'upcoming' && withCancel && (
+        <button type="button" className="wk-cancel" onClick={(e) => { e.stopPropagation(); setTarget(lesson) }}>Hủy lớp</button>
       )}
-      {c.status === 'attended' && <em>Đã điểm danh {c.att}</em>}
-      {c.status === 'cancelled' && <em>Đã hủy lớp</em>}
+      {lesson.status === 'attended' && <em>Đã điểm danh {lesson.att}</em>}
+      {lesson.status === 'cancelled' && <em>Đã hủy lớp</em>}
     </div>
   )
 
   // ── Tuần ──
   const days = weekDays(anchor)
-  const renderWeekCell = (slot, di) => {
-    const list = lessonsOf(days[di].d)[slot] ?? []
+  const renderWeekCell = (slot, dayIndex) => {
+    const list = lessonsOf(days[dayIndex].d)[slot] ?? []
     if (list.length === 0) return <EmptyCell slot={slot} />
-    const key = `${days[di].iso}|${slot}`
+    const key = `${days[dayIndex].iso}|${slot}`
     const isOpen = expanded.has(key)
-    const done = list.every((c) => c.status === 'attended')
+    const done = list.every((lesson) => lesson.status === 'attended')
     return (
       <div className={`wk-cell ${done ? 'is-done' : 'is-up'}`}>
-        <button type="button" className="wk-cell__head" aria-expanded={isOpen} onClick={() => toggle(key)}>
+        <button type="button" className="wk-cell__head" aria-expanded={isOpen} onClick={() => toggleSlot(key)}>
           <b>{slot}</b>
           {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           <small>{list.length} lớp</small>
-          <span className="wk-dots">{list.map((c) => <i key={c.id} className={dotClass(c.status)} />)}</span>
+          <span className="wk-dots">{list.map((lesson) => <i key={lesson.id} className={dotClass(lesson.status)} />)}</span>
         </button>
-        {isOpen && list.map((c) => classRow(c, slot))}
+        {isOpen && list.map((lesson) => renderClassRow(lesson, slot))}
       </div>
     )
   }
@@ -84,30 +111,30 @@ export default function LichPhanCong() {
   const dayLessons = lessonsOf(anchor)
   const renderDay = () => (
     <div className="dv">
-      {SECTIONS.map((sec) => (
-        <div key={sec.key} className="wk">
-          <div className="wk-section"><span>{sec.label}</span></div>
-          {sec.slots.map((slot) => {
+      {SECTIONS.map((section) => (
+        <div key={section.key} className="wk">
+          <div className="wk-section"><span>{section.label}</span></div>
+          {section.slots.map((slot) => {
             const list = dayLessons[slot] ?? []
             return (
               <div key={slot} className="dv-slot">
                 <div className="dv-slot__time"><b>{slot}</b><small>{list.length ? `${list.length} lớp` : 'Trống'}</small></div>
                 <div className="dv-slot__list">
                   {list.length === 0 && <div className="wk-cell is-empty"><small>Không có lớp trong khung giờ này</small></div>}
-                  {list.map((c) => (
-                    <div key={c.id} className={`dv-card is-${c.status}`} onClick={() => open(c)}>
+                  {list.map((lesson) => (
+                    <div key={lesson.id} className={`dv-card is-${lesson.status}`} onClick={() => openSlot(lesson)}>
                       <div className="dv-card__main">
-                        <b>{c.time ?? slot}</b>
-                        <strong>{c.name}</strong>
-                        <small>{c.room} · GV {c.teacher} · {c.students} học viên</small>
+                        <b>{lesson.time ?? slot}</b>
+                        <strong>{lesson.name}</strong>
+                        <small>{lesson.room} · GV {lesson.teacher} · {lesson.students} học viên</small>
                       </div>
                       <div className="dv-card__act" onClick={(e) => e.stopPropagation()}>
-                        {c.status === 'attended' && <em>Đã điểm danh {c.att}</em>}
-                        {c.status === 'cancelled' && <em className="is-danger">Đã hủy lớp</em>}
-                        {c.status === 'upcoming' && (
+                        {lesson.status === 'attended' && <button type="button" className="dv-btn" onClick={() => navigate(`/lichphancong/diemdanh/${encodeURIComponent(lesson.id)}`)}>Xem điểm danh {lesson.att}</button>}
+                        {lesson.status === 'cancelled' && <em className="is-danger">Đã hủy lớp</em>}
+                        {lesson.status === 'upcoming' && (
                           <>
-                            <button type="button" className="dv-btn" onClick={() => { markAttended(c.id, c.students); notify(`Đã mở điểm danh lớp ${c.name}`) }}>Điểm danh</button>
-                            <button type="button" className="wk-cancel dv-btn" onClick={() => setTarget(c)}>Hủy lớp</button>
+                            <button type="button" className="dv-btn" onClick={() => navigate(`/lichphancong/diemdanh/${encodeURIComponent(lesson.id)}`)}>Điểm danh</button>
+                            <button type="button" className="wk-cancel dv-btn" onClick={() => setTarget(lesson)}>Hủy lớp</button>
                           </>
                         )}
                       </div>
@@ -123,26 +150,26 @@ export default function LichPhanCong() {
   )
 
   // ── Tháng ──
-  const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1)
-  const gridStart = mondayOf(first)
-  const weeks = Math.ceil((weekdayIndex(first) + new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate()) / 7)
+  const firstDayOfMonth = new Date(anchor.getFullYear(), anchor.getMonth(), 1)
+  const gridStart = mondayOf(firstDayOfMonth)
+  const weekCount = Math.ceil((weekdayIndex(firstDayOfMonth) + new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate()) / 7)
   const renderMonth = () => (
     <div className="mo">
       <div className="mo-head">{WEEKDAYS.map((w) => <b key={w.key}>{w.key}</b>)}</div>
       <div className="mo-grid">
-        {Array.from({ length: weeks * 7 }, (_, i) => {
+        {Array.from({ length: weekCount * 7 }, (_, i) => {
           const d = addDays(gridStart, i)
           const info = dayInfo(d)
-          const byslot = lessonsOf(d)
-          const all = SLOTS.flatMap((s) => byslot[s].map((c) => ({ ...c, slot: s })))
-          const out = d.getMonth() !== anchor.getMonth()
+          const lessonsBySlot = lessonsOf(d)
+          const lessons = SLOTS.flatMap((s) => lessonsBySlot[s].map((lesson) => ({ ...lesson, slot: s })))
+          const outsideMonth = d.getMonth() !== anchor.getMonth()
           return (
-            <button key={info.iso} type="button" className={`mo-cell${out ? ' is-out' : ''}${info.iso === TODAY_ISO ? ' is-today' : ''}`} onClick={() => goDay(d)}>
+            <button key={info.iso} type="button" className={`mo-cell${outsideMonth ? ' is-out' : ''}${info.iso === TODAY_ISO ? ' is-today' : ''}`} onClick={() => goDay(d)}>
               <span className="mo-cell__num">{d.getDate()}</span>
-              {all.length > 0 && <span className="mo-cell__count">{all.length} lớp</span>}
+              {lessons.length > 0 && <span className="mo-cell__count">{lessons.length} lớp</span>}
               <span className="mo-cell__list">
-                {all.slice(0, 3).map((c) => <i key={c.id} className={`mo-chip is-${c.status}`}>{c.slot.slice(0, 5)} {c.name}</i>)}
-                {all.length > 3 && <i className="mo-more">+{all.length - 3} lớp nữa</i>}
+                {lessons.slice(0, 3).map((lesson) => <i key={lesson.id} className={`mo-chip is-${lesson.status}`}>{lesson.slot.slice(0, 5)} {lesson.name}</i>)}
+                {lessons.length > 3 && <i className="mo-more">+{lessons.length - 3} lớp nữa</i>}
               </span>
             </button>
           )
@@ -168,10 +195,10 @@ export default function LichPhanCong() {
           </button>
           {menu && (
             <div className="wk-mode__menu" role="menu">
-              {MODES.map((m) => (
-                <button key={m.value} type="button" role="menuitemradio" aria-checked={mode === m.value} className={mode === m.value ? 'is-active' : ''} onClick={() => pickMode(m.value)}>
-                  {m.label}
-                  {mode === m.value && <Check size={14} />}
+              {MODES.map((modeItem) => (
+                <button key={modeItem.value} type="button" role="menuitemradio" aria-checked={mode === modeItem.value} className={mode === modeItem.value ? 'is-active' : ''} onClick={() => pickMode(modeItem.value)}>
+                  {modeItem.label}
+                  {mode === modeItem.value && <Check size={14} />}
                 </button>
               ))}
             </div>
@@ -193,10 +220,10 @@ export default function LichPhanCong() {
       <Card>
         <CardHead title="Giảng viên / Trợ giảng rảnh" />
         <div className="wk-free">
-          {FREE_STAFF.map((p) => (
-            <div key={p.name} className="u-person">
-              <Avatar name={p.name} size={32} />
-              <div><strong>{p.name}</strong><small>{p.note}</small></div>
+          {FREE_STAFF.map((staff) => (
+            <div key={staff.name} className="u-person">
+              <Avatar name={staff.name} size={32} />
+              <div><strong>{staff.name}</strong><small>{staff.note}</small></div>
             </div>
           ))}
         </div>
@@ -206,7 +233,7 @@ export default function LichPhanCong() {
         <CancelClassModal
           cls={target}
           onClose={() => setTarget(null)}
-          onConfirm={({ reason }) => { cancelClass(target.id, reason); setTarget(null); notify(`Đã hủy lớp ${target.name}`) }}
+          onConfirm={confirmCancellation}
         />
       )}
     </div>

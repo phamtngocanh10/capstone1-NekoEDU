@@ -3,8 +3,8 @@ import { CircleCheck } from 'lucide-react'
 
 export default function Toast({ message, onDone }) {
   useEffect(() => {
-    const t = setTimeout(onDone, 3000)
-    return () => clearTimeout(t)
+    const timer = setTimeout(onDone, 3000)
+    return () => clearTimeout(timer)
   }, [message, onDone])
 
   return (

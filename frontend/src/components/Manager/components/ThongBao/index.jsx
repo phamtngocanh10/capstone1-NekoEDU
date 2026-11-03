@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FileText, Plus } from 'lucide-react'
 import { Avatar, Btn, Card, CardHead, Chip, Dialog, MiniStat, Pills, Progress } from '../../../../common/ui'
@@ -12,12 +12,20 @@ export default function ThongBao() {
   const items = announceStore.use()
   const [filter, setFilter] = useState('all')
   const [preview, setPreview] = useState(null)
-  const count = (s) => items.filter((i) => i.status === s).length
-  const rows = useMemo(() => items.filter((i) => filter === 'all' || i.status === filter), [items, filter])
+  const count = (status) => items.filter((item) => item.status === status).length
+  const rows = items.filter((item) => filter === 'all' || item.status === filter)
   const filters = [
     { value: 'all', label: `Tất cả (${items.length})` }, { value: 'sent', label: `Đã gửi (${count('sent')})` },
     { value: 'scheduled', label: `Hẹn giờ (${count('scheduled')})` }, { value: 'draft', label: `Bản nháp (${count('draft')})` },
   ]
+
+  function applyTemplate(template) {
+    navigate('/thongbao/soan', { state: { template } })
+  }
+
+  function openAnnouncement(id) {
+    navigate(`/thongbao/${id}`)
+  }
 
   return (
     <div className="u-page">
@@ -30,7 +38,7 @@ export default function ThongBao() {
       <div className="u-toolbar">
         <Pills items={filters} value={filter} onChange={setFilter} />
         <span className="u-grow" />
-        <Btn icon={Plus} onClick={() => navigate('/thongbao/soan')}>Soạn thông báo mới</Btn>
+        <Btn icon={Plus} to="/thongbao/soan">Soạn thông báo mới</Btn>
       </div>
 
       <div className="tb-cols">
@@ -38,7 +46,16 @@ export default function ThongBao() {
           <CardHead title="Thông báo đã tạo" />
           {rows.length === 0 && <p className="u-faint" style={{ padding: 24, textAlign: 'center' }}>Không có thông báo phù hợp</p>}
           {rows.map((a) => (
-            <div key={a.id} className="tb-item" role="button" tabIndex={0} onClick={() => navigate(`/thongbao/${a.id}`)} onKeyDown={(e) => e.key === 'Enter' && navigate(`/thongbao/${a.id}`)}>
+            <div
+              key={a.id}
+              className="tb-item"
+              role="button"
+              tabIndex={0}
+              onClick={() => openAnnouncement(a.id)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') openAnnouncement(a.id)
+              }}
+            >
               <span className="tb-item__icon"><FileText size={17} /></span>
               <div className="u-grow"><strong>{a.title}</strong><small>{a.meta}</small></div>
               <div className="tb-item__side">
@@ -55,7 +72,7 @@ export default function ThongBao() {
             <div key={t.id} className="tb-tpl">
               <div className="u-person"><Avatar name={t.letter} size={30} /><div><strong>{t.title}</strong><small>{t.desc}</small></div></div>
               <div className="u-row">
-                <Btn size="sm" onClick={() => navigate('/thongbao/soan', { state: { template: t } })}>Dùng mẫu</Btn>
+                <Btn size="sm" onClick={() => applyTemplate(t)}>Dùng mẫu</Btn>
                 <Btn variant="ghost" size="sm" onClick={() => setPreview(t)}>Xem trước</Btn>
               </div>
             </div>
@@ -68,7 +85,7 @@ export default function ThongBao() {
           <div className="hp-msg">{preview.content}</div>
           <div className="u-modal__foot">
             <Btn variant="ghost" size="sq" onClick={() => setPreview(null)}>Đóng</Btn>
-            <Btn size="sq" onClick={() => navigate('/thongbao/soan', { state: { template: preview } })}>Dùng mẫu</Btn>
+            <Btn size="sq" onClick={() => applyTemplate(preview)}>Dùng mẫu</Btn>
           </div>
         </Dialog>
       )}

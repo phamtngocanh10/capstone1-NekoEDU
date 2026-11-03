@@ -5,11 +5,13 @@ export function HBars({ items, max = 100, target, unit = '%' }) {
   return (
     <div className="ts-hbars">
       {target != null && <i className="ts-target" style={{ left: `calc(124px + (100% - 192px) * ${target / max})` }} />}
-      {items.map((it) => (
-        <div key={it.label} className="ts-hbar">
-          <span>{it.label}</span>
-          <div className="u-progress u-progress--lg" style={{ '--bar': it.color }}><span style={{ width: `${(it.value / max) * 100}%` }} /></div>
-          <b>{it.value}{unit}</b>
+      {items.map((item) => (
+        <div key={item.label} className="ts-hbar">
+          <span>{item.label}</span>
+          <div className="u-progress u-progress--lg" style={{ '--bar': item.color }}>
+            <span style={{ width: `${(item.value / max) * 100}%` }} />
+          </div>
+          <b>{item.value}{unit}</b>
         </div>
       ))}
     </div>
@@ -20,11 +22,11 @@ export function HBars({ items, max = 100, target, unit = '%' }) {
 export function VBars({ items, max, height = 190 }) {
   return (
     <div className="ts-vbars" style={{ height }}>
-      {items.map((it) => (
-        <div key={it.label} className="ts-vbar">
-          <b>{it.value}</b>
-          <i style={{ height: Math.round((it.value / max) * (height - 56)), background: it.color }} />
-          <span>{it.label}</span>
+      {items.map((item) => (
+        <div key={item.label} className="ts-vbar">
+          <b>{item.value}</b>
+          <i style={{ height: Math.round((item.value / max) * (height - 56)), background: item.color }} />
+          <span>{item.label}</span>
         </div>
       ))}
     </div>
@@ -33,18 +35,33 @@ export function VBars({ items, max, height = 190 }) {
 
 // Đường xu hướng. points: [{ label, value }]
 export function LineChart({ points, min, max, color = 'var(--danger)', unit = '' }) {
-  const W = 560, H = 200, p = { l: 24, r: 24, t: 30, b: 30 }
-  const x = (i) => p.l + (i * (W - p.l - p.r)) / (points.length - 1)
-  const y = (v) => p.t + (1 - (v - min) / (max - min)) * (H - p.t - p.b)
+  const width = 560
+  const height = 200
+  const padding = { left: 24, right: 24, top: 30, bottom: 30 }
+  const chartWidth = width - padding.left - padding.right
+  const chartHeight = height - padding.top - padding.bottom
+  const getX = (index) => padding.left + (index * chartWidth) / (points.length - 1)
+  const getY = (value) => padding.top + (1 - (value - min) / (max - min)) * chartHeight
+  const linePoints = points.map((point, index) => `${getX(index)},${getY(point.value)}`).join(' ')
+
   return (
-    <svg className="ts-line" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Biểu đồ đường xu hướng">
-      {[0, 0.5, 1].map((g) => <line key={g} x1={p.l} x2={W - p.r} y1={p.t + g * (H - p.t - p.b)} y2={p.t + g * (H - p.t - p.b)} stroke="var(--divider)" />)}
-      <polyline fill="none" stroke={color} strokeWidth="2" points={points.map((pt, i) => `${x(i)},${y(pt.value)}`).join(' ')} />
-      {points.map((pt, i) => (
-        <g key={pt.label}>
-          <circle cx={x(i)} cy={y(pt.value)} r="4" fill="#fff" stroke={color} strokeWidth="2" />
-          <text x={x(i)} y={y(pt.value) - 10} textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--text)">{pt.value}{unit}</text>
-          <text x={x(i)} y={H - 8} textAnchor="middle" fontSize="10.5" fill="var(--text-faint)">{pt.label}</text>
+    <svg className="ts-line" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Biểu đồ đường xu hướng">
+      {[0, 0.5, 1].map((position) => (
+        <line
+          key={position}
+          x1={padding.left}
+          x2={width - padding.right}
+          y1={padding.top + position * chartHeight}
+          y2={padding.top + position * chartHeight}
+          stroke="var(--divider)"
+        />
+      ))}
+      <polyline fill="none" stroke={color} strokeWidth="2" points={linePoints} />
+      {points.map((point, index) => (
+        <g key={point.label}>
+          <circle cx={getX(index)} cy={getY(point.value)} r="4" fill="#fff" stroke={color} strokeWidth="2" />
+          <text x={getX(index)} y={getY(point.value) - 10} textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--text)">{point.value}{unit}</text>
+          <text x={getX(index)} y={height - 8} textAnchor="middle" fontSize="10.5" fill="var(--text-faint)">{point.label}</text>
         </g>
       ))}
     </svg>
@@ -53,19 +70,32 @@ export function LineChart({ points, min, max, color = 'var(--danger)', unit = ''
 
 // Biểu đồ vành khuyên. segments: [{ value, color }]
 export function Donut({ segments, size = 150, thickness = 20, center }) {
-  const r = (size - thickness) / 2
-  const C = 2 * Math.PI * r
-  const total = segments.reduce((s, x) => s + x.value, 0)
+  const radius = (size - thickness) / 2
+  const circumference = 2 * Math.PI * radius
+  const total = segments.reduce((sum, segment) => sum + segment.value, 0)
   let offset = 0
   return (
     <div className="ts-donut" style={{ width: size, height: size }}>
       <svg viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Biểu đồ vành khuyên">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--divider)" strokeWidth={thickness} />
-        {segments.map((s) => {
-          const len = (s.value / total) * C
-          const el = <circle key={s.color} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={s.color} strokeWidth={thickness} strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-offset} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
-          offset += len
-          return el
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="var(--divider)" strokeWidth={thickness} />
+        {segments.map((segment) => {
+          const length = (segment.value / total) * circumference
+          const startOffset = offset
+          offset += length
+          return (
+            <circle
+              key={segment.color}
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke={segment.color}
+              strokeWidth={thickness}
+              strokeDasharray={`${length} ${circumference - length}`}
+              strokeDashoffset={-startOffset}
+              transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            />
+          )
         })}
       </svg>
       <div className="ts-donut__c">{center}</div>

@@ -5,10 +5,24 @@ import { BackLink, Btn, Card, Chip } from '../../../../common/ui'
 import { usePageHeader, useManager } from '../../layout/ManagerContext'
 import { CLASSES } from '../KhoaHoc/data'
 import { MOCK_TODAY, SLOTS, TODAY_ISO, dayInfo, parseIso, periodOf } from './data'
-import { cancelClass, markAttended, useSchedule } from './store'
+import { cancelClass, useSchedule } from './store'
 import CancelClassModal from './CancelClassModal'
 
-const mins = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
+function timeToMinutes(time) {
+  const [hours, minutes] = time.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+function timelineTicks(start, end) {
+  const startMinutes = timeToMinutes(start)
+  const duration = timeToMinutes(end) - startMinutes
+  return [0, 0.25, 0.5, 0.75, 1].map((position) => {
+    const time = startMinutes + position * duration
+    const hours = String(Math.floor(time / 60)).padStart(2, '0')
+    const minutes = String(time % 60).padStart(2, '0')
+    return `${hours}:${minutes}`
+  })
+}
 const STATUS = { upcoming: ['blue', 'Sắp diễn ra', 'Chưa điểm danh'], attended: ['green', 'Đã điểm danh'], cancelled: ['red', 'Đã hủy lớp'] }
 
 // Figma 11.2 — Chi tiết khung giờ trong ngày
@@ -21,20 +35,26 @@ export default function ChiTietKhungGio() {
   const [target, setTarget] = useState(null)
   usePageHeader('Chi tiết khung giờ', 'Các lớp học trong khung giờ của ngày đã chọn')
 
-  const dateObj = /^\d{4}-\d{2}-\d{2}$/.test(date ?? '') ? parseIso(date) : MOCK_TODAY
-  const day = dayInfo(dateObj)
+  const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(date ?? '') ? parseIso(date) : MOCK_TODAY
+  const day = dayInfo(selectedDate)
   const slot = SLOTS.includes(params.get('slot')) ? params.get('slot') : '17:00-19:00'
-  const list = lessonsOf(dateObj)[slot] ?? []
+  const lessons = lessonsOf(selectedDate)[slot] ?? []
   const [start, end] = slot.split('-')
-  const count = (st) => list.filter((c) => c.status === st).length
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((p) => { const t = mins(start) + p * (mins(end) - mins(start)); return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}` })
-  const span = mins(end) - mins(start)
-  const rooms = new Set(list.map((c) => c.room)).size
+  const count = (status) => lessons.filter((lesson) => lesson.status === status).length
+  const ticks = timelineTicks(start, end)
+  const duration = timeToMinutes(end) - timeToMinutes(start)
+  const rooms = new Set(lessons.map((lesson) => lesson.room)).size
 
-  const viewClass = (c) => {
-    const k = CLASSES.find((x) => x.name === c.name)
-    if (k) navigate(`/khoahoc/${k.courseId}/lop/${k.id}`)
-    else notify(`Lớp ${c.name} chưa có trong danh sách khóa học`)
+  const viewClass = (lesson) => {
+    const classInfo = CLASSES.find((classItem) => classItem.name === lesson.name)
+    if (classInfo) navigate(`/khoahoc/${classInfo.courseId}/lop/${classInfo.id}`)
+    else notify(`Lớp ${lesson.name} chưa có trong danh sách khóa học`)
+  }
+
+  function confirmCancellation({ reason }) {
+    cancelClass(target.id, reason)
+    setTarget(null)
+    notify(`Đã hủy lớp ${target.name}`)
   }
 
   return (
@@ -45,7 +65,7 @@ export default function ChiTietKhungGio() {
         <div className="u-grow">
           <h2>{day.long}, {day.date}/{day.iso.slice(0, 4)}</h2>
           {day.iso === TODAY_ISO && <Chip tone="blue">Hôm nay</Chip>}
-          <p>Khung giờ {start} – {end} · {periodOf(slot).replace('Buổi ', 'Buổi ').toLowerCase().replace(/^b/, 'B')} · {list.length} lớp · {rooms} phòng</p>
+          <p>Khung giờ {start} – {end} · {periodOf(slot).toLowerCase().replace(/^b/, 'B')} · {lessons.length} lớp · {rooms} phòng</p>
         </div>
         <div className="u-row">
           <Chip tone="green" size="lg">{count('attended')} đã điểm danh</Chip>
@@ -64,18 +84,18 @@ export default function ChiTietKhungGio() {
         <Btn variant="ghost" size="md" onClick={() => navigate('/lichphancong')}>‹ {day.key} · {day.date}</Btn>
       </div>
 
-      {list.length > 0 && (
+      {lessons.length > 0 && (
         <Card>
           <CardTitle>Dòng thời gian · {start} – {end}</CardTitle>
           <div className="tl">
             <div className="tl__axis">{ticks.map((t) => <span key={t}>{t}</span>)}</div>
-            {list.map((c) => {
-              const [cs, ce] = (c.time ?? slot).split('-')
-              const left = ((mins(cs) - mins(start)) / span) * 100
-              const width = ((mins(ce) - mins(cs)) / span) * 100
+            {lessons.map((lesson) => {
+              const [classStart, classEnd] = (lesson.time ?? slot).split('-')
+              const left = ((timeToMinutes(classStart) - timeToMinutes(start)) / duration) * 100
+              const width = ((timeToMinutes(classEnd) - timeToMinutes(classStart)) / duration) * 100
               return (
-                <div key={c.id} className={`tl__bar is-${c.status}`} style={{ marginLeft: `${left}%`, width: `${width}%` }}>
-                  {c.time ?? slot} · {c.name} · {c.room}
+                <div key={lesson.id} className={`tl__bar is-${lesson.status}`} style={{ marginLeft: `${left}%`, width: `${width}%` }}>
+                  {lesson.time ?? slot} · {lesson.name} · {lesson.room}
                 </div>
               )
             })}
@@ -83,29 +103,29 @@ export default function ChiTietKhungGio() {
         </Card>
       )}
 
-      <h3 className="u-card__title">Danh sách lớp trong khung giờ ({list.length})</h3>
-      {list.length === 0 && <Card className="u-faint">Khung giờ này đang trống.</Card>}
-      {list.map((c) => {
-        const [tone, label, sub] = STATUS[c.status]
+      <h3 className="u-card__title">Danh sách lớp trong khung giờ ({lessons.length})</h3>
+      {lessons.length === 0 && <Card className="u-faint">Khung giờ này đang trống.</Card>}
+      {lessons.map((lesson) => {
+        const [tone, label, sub] = STATUS[lesson.status]
         return (
-          <div key={c.id} className={`slot-card is-${c.status}`} onClick={() => viewClass(c)}>
+          <div key={lesson.id} className={`slot-card is-${lesson.status}`} onClick={() => viewClass(lesson)}>
             <div>
-              <div className="slot-card__time">{c.time ?? slot}</div>
-              <h4>{c.name}</h4>
-              <small>{c.room} · GV {c.teacher}</small>
+              <div className="slot-card__time">{lesson.time ?? slot}</div>
+              <h4>{lesson.name}</h4>
+              <small>{lesson.room} · GV {lesson.teacher}</small>
             </div>
-            <div><span className="lbl">Sĩ số</span><div className="val">{c.students} học viên</div></div>
-            <div><span className="lbl">Trợ giảng</span><div className="val">{c.assistant}</div></div>
+            <div><span className="lbl">Sĩ số</span><div className="val">{lesson.students} học viên</div></div>
+            <div><span className="lbl">Trợ giảng</span><div className="val">{lesson.assistant}</div></div>
             <div className="slot-card__status">
               <Chip tone={tone}>{label}</Chip>
-              <small>{c.status === 'attended' ? (c.attNote ?? `Có mặt ${c.att}`) : sub ?? c.reason}</small>
+              <small>{lesson.status === 'attended' ? (lesson.attNote ?? `Có mặt ${lesson.att}`) : sub ?? lesson.reason}</small>
             </div>
             <div className="slot-card__actions" onClick={(e) => e.stopPropagation()}>
-              {c.status === 'attended' && <Btn variant="soft" onClick={() => viewClass(c)}>Xem điểm danh</Btn>}
-              {c.status === 'upcoming' && (
+              {lesson.status === 'attended' && <Btn variant="soft" onClick={() => navigate(`/lichphancong/diemdanh/${encodeURIComponent(lesson.id)}`)}>Xem điểm danh</Btn>}
+              {lesson.status === 'upcoming' && (
                 <>
-                  <Btn onClick={() => { markAttended(c.id, c.students); notify(`Đã mở điểm danh lớp ${c.name}`) }}>Điểm danh</Btn>
-                  <Btn variant="outline-danger" onClick={() => setTarget(c)}>Hủy lớp</Btn>
+                  <Btn onClick={() => navigate(`/lichphancong/diemdanh/${encodeURIComponent(lesson.id)}`)}>Điểm danh</Btn>
+                  <Btn variant="outline-danger" onClick={() => setTarget(lesson)}>Hủy lớp</Btn>
                 </>
               )}
             </div>
@@ -118,7 +138,7 @@ export default function ChiTietKhungGio() {
         <CancelClassModal
           cls={target}
           onClose={() => setTarget(null)}
-          onConfirm={({ reason }) => { cancelClass(target.id, reason); setTarget(null); notify(`Đã hủy lớp ${target.name}`) }}
+          onConfirm={confirmCancellation}
         />
       )}
     </div>

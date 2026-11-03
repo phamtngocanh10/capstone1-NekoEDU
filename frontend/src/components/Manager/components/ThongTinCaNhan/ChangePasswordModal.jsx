@@ -3,17 +3,18 @@ import { Lock, Eye, EyeOff, CircleCheck, CircleAlert } from 'lucide-react'
 import Modal from '../../../../common/Modal'
 import Button from '../../../../common/Button'
 import { useManager } from '../../layout/ManagerContext'
+import { changePassword } from '../../../../api/auth'
 // import { changePassword } from '../../../../api/profile' // bỏ comment khi có backend
 
 // Điểm độ mạnh 0–4: độ dài >= 8, hoa+thường, số, ký tự đặc biệt.
-function strength(pw) {
-  if (!pw) return 0
-  let s = 0
-  if (pw.length >= 8) s++
-  if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) s++
-  if (/\d/.test(pw)) s++
-  if (/[^A-Za-z0-9]/.test(pw)) s++
-  return Math.max(s, 1)
+function passwordStrength(password) {
+  if (!password) return 0
+  let score = 0
+  if (password.length >= 8) score++
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++
+  if (/\d/.test(password)) score++
+  if (/[^A-Za-z0-9]/.test(password)) score++
+  return Math.max(score, 1)
 }
 const LEVELS = [
   null,
@@ -50,7 +51,7 @@ function PasswordField({ label, value, onChange, placeholder, autoComplete }) {
   )
 }
 
-export default function ChangePasswordModal({ onClose }) {
+export default function ChangePasswordModal({ onClose, onChangePassword }) {
   const { notify } = useManager()
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
@@ -58,9 +59,10 @@ export default function ChangePasswordModal({ onClose }) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const score = strength(next)
+  const score = passwordStrength(next)
   const level = LEVELS[score]
-  const matchState = !confirm ? null : confirm === next ? 'ok' : 'bad'
+  let matchState = null
+  if (confirm) matchState = confirm === next ? 'ok' : 'bad'
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -73,11 +75,12 @@ export default function ChangePasswordModal({ onClose }) {
     setLoading(true)
     try {
       // await changePassword({ currentPassword: current, newPassword: next })
-      await new Promise((r) => setTimeout(r, 400)) // giả lập gọi API
+      const savePassword = onChangePassword ?? changePassword
+      await savePassword({ currentPassword: current, newPassword: next })
       notify('Đã cập nhật mật khẩu thành công')
       onClose()
     } catch (err) {
-      setError(err.response?.data?.message ?? 'Không đổi được mật khẩu, vui lòng thử lại.')
+      setError(err.response?.data?.message ?? err.message ?? 'Không đổi được mật khẩu, vui lòng thử lại.')
     } finally {
       setLoading(false)
     }

@@ -5,8 +5,9 @@ import { TEACHING, lecturerStore } from '../GiangVien/data'
 import { LOCK_REASONS, ROLES } from './data'
 
 const classesOf = (account) => {
-  const lec = lecturerStore.get().find((l) => l.name === account.name)
-  return lec ? (TEACHING[lec.id] ?? []).length : 0
+  const lecturer = lecturerStore.get().find((item) => item.name === account.name)
+  if (!lecturer) return 0
+  return (TEACHING[lecturer.id] ?? []).length
 }
 
 // Thêm / sửa tài khoản (Figma không có màn riêng cho form này — dùng chung kiểu form với các modal khác)
@@ -37,7 +38,7 @@ export function LockModal({ account, onConfirm, onClose }) {
   const [period, setPeriod] = useState('forever')
   const [logout, setLogout] = useState(true)
   const [mail, setMail] = useState(true)
-  const n = classesOf(account)
+  const classCount = classesOf(account)
   return (
     <Dialog title="Tạm khóa tài khoản" subtitle="Người dùng không thể đăng nhập cho đến khi bạn mở khóa" onClose={onClose}>
       <div className="cm-fields">
@@ -49,7 +50,7 @@ export function LockModal({ account, onConfirm, onClose }) {
         <RadioChips label="Thời gian tạm khóa" cols={3} value={period} onChange={setPeriod} options={[{ value: 'forever', label: 'Đến khi mở lại' }, { value: '7', label: '7 ngày' }, { value: '30', label: '30 ngày' }]} />
         <CheckRow checked={logout} onChange={setLogout}>Đăng xuất khỏi mọi thiết bị ngay</CheckRow>
         <CheckRow checked={mail} onChange={setMail}>Gửi email thông báo cho người dùng</CheckRow>
-        {n > 0 && <Notice tone="amber">Giảng viên đang phụ trách {n} lớp. Lịch và dữ liệu được giữ nguyên; hãy phân công giảng viên khác phụ trách nếu cần.</Notice>}
+        {classCount > 0 && <Notice tone="amber">Giảng viên đang phụ trách {classCount} lớp. Lịch và dữ liệu được giữ nguyên; hãy phân công giảng viên khác phụ trách nếu cần.</Notice>}
       </div>
       <div className="u-modal__foot">
         <Btn variant="ghost" size="sq" onClick={onClose}>Hủy</Btn>
@@ -62,13 +63,13 @@ export function LockModal({ account, onConfirm, onClose }) {
 // Figma 18.4 — Xóa tài khoản (phải gõ "XÓA" để xác nhận)
 export function DeleteModal({ account, onConfirm, onClose }) {
   const [text, setText] = useState('')
-  const n = classesOf(account)
+  const classCount = classesOf(account)
   return (
     <Dialog title="Xóa tài khoản" subtitle="Xóa vĩnh viễn tài khoản khỏi hệ thống" onClose={onClose}>
       <Notice tone="red" title="Xóa tài khoản không thể hoàn tác" className="cm-fields">Người dùng sẽ mất quyền đăng nhập vĩnh viễn.</Notice>
       <div className="pq-sum" style={{ marginTop: 14 }}>
         <div><div><strong>{account.name} · {account.role}</strong><small>{account.email}</small></div></div>
-        {n > 0 && <div><div><strong>Lớp đang phụ trách</strong><small>{n} lớp — cần phân công lại trước khi xóa</small></div><Chip tone="red">Cần xử lý</Chip></div>}
+        {classCount > 0 && <div><div><strong>Lớp đang phụ trách</strong><small>{classCount} lớp — cần phân công lại trước khi xóa</small></div><Chip tone="red">Cần xử lý</Chip></div>}
         <div><div><strong>Điểm danh và bảng điểm</strong><small>Được giữ lại, hiển thị ẩn danh</small></div><Chip tone="green">Giữ lại</Chip></div>
       </div>
       <label className="u-field__label" htmlFor="confirm-delete">Nhập XÓA để xác nhận</label>

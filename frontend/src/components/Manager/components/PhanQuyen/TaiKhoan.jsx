@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { Avatar, Btn, Card, Chip, DataTable, MiniStat, Pills } from '../../../../common/ui'
 import { useManager } from '../../layout/ManagerContext'
@@ -11,14 +11,49 @@ export default function TaiKhoan() {
   const accounts = accountStore.use()
   const [role, setRole] = useState('all')
   const [modal, setModal] = useState(null) // { type: 'add' | 'edit' | 'lock' | 'delete', account? }
-  const rows = useMemo(() => accounts.filter((a) => role === 'all' || a.role === role), [accounts, role])
-  const filters = [{ value: 'all', label: `Tất cả (${accounts.length})` }, ...ROLES.map((r) => ({ value: r, label: `${r} (${accounts.filter((a) => a.role === r).length})` }))]
+  const rows = accounts.filter((account) => role === 'all' || account.role === role)
+  const filters = [
+    { value: 'all', label: `Tất cả (${accounts.length})` },
+    ...ROLES.map((roleName) => ({
+      value: roleName,
+      label: `${roleName} (${accounts.filter((account) => account.role === roleName).length})`,
+    })),
+  ]
   const close = () => setModal(null)
 
-  const save = (v) => {
-    if (modal.type === 'edit') { patchAccount(modal.account.id, { name: v.name, email: v.email, role: v.role }); notify('Đã cập nhật tài khoản') }
-    else { accountStore.set((l) => [...l, { id: `a${Date.now()}`, name: v.name, email: v.email, role: v.role, status: 'active', last: 'Chưa đăng nhập' }]); notify(`Đã tạo tài khoản ${v.email}`) }
+  function saveAccount(form) {
+    const accountInfo = { name: form.name, email: form.email, role: form.role }
+    if (modal.type === 'edit') {
+      patchAccount(modal.account.id, accountInfo)
+      notify('Đã cập nhật tài khoản')
+    } else {
+      const account = {
+        id: `a${Date.now()}`,
+        ...accountInfo,
+        status: 'active',
+        last: 'Chưa đăng nhập',
+      }
+      accountStore.set((currentAccounts) => [...currentAccounts, account])
+      notify(`Đã tạo tài khoản ${form.email}`)
+    }
     close()
+  }
+
+  function unlockAccount(account) {
+    patchAccount(account.id, { status: 'active' })
+    notify(`Đã mở khóa ${account.name}`)
+  }
+
+  function lockAccount() {
+    patchAccount(modal.account.id, { status: 'locked' })
+    close()
+    notify(`Đã tạm khóa ${modal.account.name}`)
+  }
+
+  function deleteAccount() {
+    accountStore.set((currentAccounts) => currentAccounts.filter((account) => account.id !== modal.account.id))
+    close()
+    notify(`Đã xóa tài khoản ${modal.account.name}`)
   }
 
   const columns = [
@@ -34,7 +69,7 @@ export default function TaiKhoan() {
           <Btn variant="soft" size="sm" onClick={() => setModal({ type: 'edit', account: a })}>Sửa</Btn>
           {!a.self && (a.status === 'active'
             ? <Btn variant="ghost" size="sm" onClick={() => setModal({ type: 'lock', account: a })}>Tạm khóa</Btn>
-            : <Btn variant="soft" size="sm" onClick={() => { patchAccount(a.id, { status: 'active' }); notify(`Đã mở khóa ${a.name}`) }}>Mở khóa</Btn>)}
+            : <Btn variant="soft" size="sm" onClick={() => unlockAccount(a)}>Mở khóa</Btn>)}
           {!a.self && <Btn variant="outline-danger" size="sm" onClick={() => setModal({ type: 'delete', account: a })}>Xóa</Btn>}
         </div>
       ),
@@ -56,9 +91,9 @@ export default function TaiKhoan() {
       </div>
       <Card><DataTable columns={columns} rows={rows} chevron={false} /></Card>
 
-      {(modal?.type === 'add' || modal?.type === 'edit') && <AccountFormModal account={modal.account} onSubmit={save} onClose={close} />}
-      {modal?.type === 'lock' && <LockModal account={modal.account} onClose={close} onConfirm={() => { patchAccount(modal.account.id, { status: 'locked' }); close(); notify(`Đã tạm khóa ${modal.account.name}`) }} />}
-      {modal?.type === 'delete' && <DeleteModal account={modal.account} onClose={close} onConfirm={() => { accountStore.set((l) => l.filter((a) => a.id !== modal.account.id)); close(); notify(`Đã xóa tài khoản ${modal.account.name}`) }} />}
+      {(modal?.type === 'add' || modal?.type === 'edit') && <AccountFormModal account={modal.account} onSubmit={saveAccount} onClose={close} />}
+      {modal?.type === 'lock' && <LockModal account={modal.account} onClose={close} onConfirm={lockAccount} />}
+      {modal?.type === 'delete' && <DeleteModal account={modal.account} onClose={close} onConfirm={deleteAccount} />}
     </>
   )
 }

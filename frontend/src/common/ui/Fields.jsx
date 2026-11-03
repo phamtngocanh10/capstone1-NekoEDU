@@ -1,7 +1,7 @@
 import { useId, useState } from 'react'
 import { Check, ChevronDown, Eye, EyeOff } from 'lucide-react'
 
-const optionOf = (o) => (typeof o === 'string' ? { value: o, label: o } : o)
+const optionOf = (option) => (typeof option === 'string' ? { value: option, label: option } : option)
 
 function Shell({ label, required, full, hint, htmlFor, children }) {
   return (
@@ -13,11 +13,14 @@ function Shell({ label, required, full, hint, htmlFor, children }) {
   )
 }
 
-export function TextField({ label, icon: Icon, required, full, hint, error, trailing, small, ...input }) {
+export function TextField({ label, icon: Icon, required, full, hint, error, trailing, small, onControlClick, ...input }) {
   const id = useId()
   return (
     <Shell label={label} required={required} full={full} hint={hint} htmlFor={id}>
-      <div className={['u-control', error && 'u-control--error', small && 'u-control--sm'].filter(Boolean).join(' ')}>
+      <div
+        className={['u-control', error && 'u-control--error', small && 'u-control--sm'].filter(Boolean).join(' ')}
+        onClick={onControlClick}
+      >
         {Icon && <Icon size={16} />}
         <input id={id} {...input} />
         {trailing}
@@ -44,13 +47,16 @@ export function PasswordField(props) {
 // options: ['A', 'B'] hoặc [{ value, label }]
 export function SelectField({ label, icon: Icon, options, required, full, hint, error, placeholder, small, ...select }) {
   const id = useId()
+  const choices = options.map(optionOf)
   return (
     <Shell label={label} required={required} full={full} hint={hint} htmlFor={id}>
       <div className={['u-control', error && 'u-control--error', small && 'u-control--sm'].filter(Boolean).join(' ')}>
         {Icon && <Icon size={16} />}
         <select id={id} {...select}>
           {placeholder && <option value="">{placeholder}</option>}
-          {options.map(optionOf).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          {choices.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
         </select>
         <ChevronDown size={14} />
       </div>
@@ -71,20 +77,21 @@ export function TextAreaField({ label, required, full = true, error, ...area }) 
 
 // Chọn 1 trong n dạng thẻ (Giới tính, Hình thức thanh toán, Vai trò...). options: [{ value, label, danger? }]
 export function RadioChips({ label, options, value, onChange, cols = options.length, full }) {
+  const choices = options.map(optionOf)
   return (
     <Shell label={label} full={full}>
       <div className="u-radios" style={{ '--cols': cols }} role="radiogroup" aria-label={label}>
-        {options.map(optionOf).map((o) => (
+        {choices.map((option) => (
           <button
-            key={o.value}
+            key={option.value}
             type="button"
             role="radio"
-            aria-checked={value === o.value}
-            className={['u-radio-card', value === o.value && 'is-on', o.danger && 'is-danger'].filter(Boolean).join(' ')}
-            onClick={() => onChange(o.value)}
+            aria-checked={value === option.value}
+            className={['u-radio-card', value === option.value && 'is-on', option.danger && 'is-danger'].filter(Boolean).join(' ')}
+            onClick={() => onChange(option.value)}
           >
             <span className="u-radio" />
-            {o.label}
+            {option.label}
           </button>
         ))}
       </div>
@@ -95,19 +102,24 @@ export function RadioChips({ label, options, value, onChange, cols = options.len
 export const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
 
 export function DayToggles({ label, value = [], onChange, full = true, shape = 'circle' }) {
-  const toggle = (d) => onChange(value.includes(d) ? value.filter((x) => x !== d) : [...value, d])
+  function toggleDay(day) {
+    const nextDays = value.includes(day)
+      ? value.filter((selectedDay) => selectedDay !== day)
+      : [...value, day]
+    onChange(nextDays)
+  }
   return (
     <Shell label={label} full={full}>
       <div className="u-days">
-        {WEEKDAYS.map((d) => (
+        {WEEKDAYS.map((day) => (
           <button
-            key={d}
+            key={day}
             type="button"
-            aria-pressed={value.includes(d)}
-            className={['u-day', shape === 'box' && 'u-day--box', value.includes(d) && 'is-on'].filter(Boolean).join(' ')}
-            onClick={() => toggle(d)}
+            aria-pressed={value.includes(day)}
+            className={['u-day', shape === 'box' && 'u-day--box', value.includes(day) && 'is-on'].filter(Boolean).join(' ')}
+            onClick={() => toggleDay(day)}
           >
-            {d}
+            {day}
           </button>
         ))}
       </div>

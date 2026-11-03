@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CircleCheck, Clock, Download, Receipt, Sparkles, TrendingDown, TrendingUp, Wallet } from 'lucide-react'
 import { Btn, Card, Chip, DataTable, Pills, SearchBox, StatCard } from '../../../../common/ui'
@@ -12,11 +12,30 @@ export default function HocPhi() {
   const { notify } = useManager()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
-  const rows = useMemo(() => FEE_ROWS.filter((r) => (filter === 'all' || r.status === filter) && norm(`${r.name} ${r.className} ${r.id}`).includes(norm(query))), [query, filter])
+  const searchText = norm(query)
+  const rows = FEE_ROWS.filter((student) => {
+    const matchesStatus = filter === 'all' || student.status === filter
+    const matchesSearch = norm(`${student.name} ${student.className} ${student.id}`).includes(searchText)
+    return matchesStatus && matchesSearch
+  })
 
-  const exportReport = () => {
-    downloadText('Bao-cao-hoc-phi.csv', ['Học viên,Lớp,Học phí kỳ này,Đã đóng,Còn nợ,Hạn đóng,Trạng thái', ...rows.map((r) => [r.name, r.className, r.fee, r.paid, r.fee - r.paid, r.due, STATUS[r.status].label].join(','))].join('\n'))
+  function exportReport() {
+    const header = 'Học viên,Lớp,Học phí kỳ này,Đã đóng,Còn nợ,Hạn đóng,Trạng thái'
+    const reportRows = rows.map((student) => [
+      student.name,
+      student.className,
+      student.fee,
+      student.paid,
+      student.fee - student.paid,
+      student.due,
+      STATUS[student.status].label,
+    ].join(','))
+    downloadText('Bao-cao-hoc-phi.csv', [header, ...reportRows].join('\n'))
     notify('Đã xuất báo cáo học phí (CSV)')
+  }
+
+  function viewPaymentHistory(student) {
+    navigate('/hocphi/lich-su', { state: { student } })
   }
 
   const columns = [
@@ -42,11 +61,11 @@ export default function HocPhi() {
         <h5>Trợ lý AI · 2 đề xuất</h5>
         <div className="hp-ai__row">
           <span className="u-iconcircle"><Sparkles size={14} /></span>5 học viên có nguy cơ chậm đóng học phí tháng 9
-          <Btn variant="soft" size="sm" onClick={() => navigate('/hocphi/nguy-co')}>Xem danh sách</Btn>
+          <Btn variant="soft" size="sm" to="/hocphi/nguy-co">Xem danh sách</Btn>
         </div>
         <div className="hp-ai__row">
           <span className="u-iconcircle"><Sparkles size={14} /></span>Thông báo học phí tháng 10 đã sẵn sàng gửi
-          <Btn size="sm" onClick={() => navigate('/hocphi/duyet-thong-bao')}>Duyệt gửi</Btn>
+          <Btn size="sm" to="/hocphi/duyet-thong-bao">Duyệt gửi</Btn>
         </div>
       </div>
 
@@ -58,7 +77,7 @@ export default function HocPhi() {
       </div>
 
       <Card>
-        <DataTable columns={columns} rows={rows} onRowClick={(r) => navigate('/hocphi/lich-su', { state: { student: r } })} />
+        <DataTable columns={columns} rows={rows} onRowClick={viewPaymentHistory} />
       </Card>
     </div>
   )

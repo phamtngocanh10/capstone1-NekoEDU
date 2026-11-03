@@ -11,30 +11,57 @@ const TYPES = [
 const FORMATS = [['xlsx', 'Excel (.xlsx)'], ['csv', 'CSV (.csv)'], ['pdf', 'PDF']]
 const TUITION = { paid: 'Đã thanh toán', overdue: 'Quá hạn' }
 
-const csvCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
+
+function fieldValue(student, key) {
+  if (key === 'tuition') return TUITION[student.tuition]
+  if (key === 'status') return student.status === 'studying' ? 'Đang học' : 'Ngừng học'
+  if (key === 'contact') return student.parentPhone ?? ''
+  return student[key]
+}
 
 // Figma 09.2. Chưa có backend: bản tải về là CSV; .xlsx/.pdf thật sẽ do API exportStudents() trả về.
 export default function ExportModal({ students, total, onDone, onClose }) {
   const [type, setType] = useState('list')
-  const [cols, setCols] = useState(() => new Set(EXPORT_FIELDS.filter((f) => f.key !== 'status').map((f) => f.key)))
+  const [selectedColumns, setSelectedColumns] = useState(() => new Set(EXPORT_FIELDS.filter((field) => field.key !== 'status').map((field) => field.key)))
   const [format, setFormat] = useState('xlsx')
   const [scope, setScope] = useState('all')
   const [sort, setSort] = useState('name')
   const [withLogo, setWithLogo] = useState(true)
 
-  const toggle = (key, on) => setCols((s) => { const n = new Set(s); on ? n.add(key) : n.delete(key); return n })
+  function toggleColumn(key, checked) {
+    setSelectedColumns((currentColumns) => {
+      const nextColumns = new Set(currentColumns)
+      if (checked) nextColumns.add(key)
+      else nextColumns.delete(key)
+      return nextColumns
+    })
+  }
   const date = todayText().replace(/\//g, '-')
   const fileName = type === 'list' ? `DS-Hoc-vien-toan-trung-tam_${date}.${format}` : `Mau-nhap-hoc-vien.${format}`
-  const selected = EXPORT_FIELDS.filter((f) => cols.has(f.key))
+  const selectedFields = EXPORT_FIELDS.filter((field) => selectedColumns.has(field.key))
 
-  const submit = () => {
-    let rows = students.filter((s) => scope === 'all' || (scope === 'studying' ? s.status === 'studying' : s.tuition === 'overdue'))
-    rows = [...rows].sort((a, b) => (sort === 'name' ? a.name.localeCompare(b.name, 'vi') : b.joined.split('/').reverse().join().localeCompare(a.joined.split('/').reverse().join())))
-    const head = selected.map((f) => csvCell(f.label)).join(',')
-    const body = type === 'template' ? '' : rows.map((s) => selected.map((f) => csvCell(
-      f.key === 'tuition' ? TUITION[s.tuition] : f.key === 'status' ? (s.status === 'studying' ? 'Đang học' : 'Ngừng học') : f.key === 'contact' ? s.parentPhone ?? '' : s[f.key],
-    )).join(',')).join('\n')
-    downloadText(fileName.replace(/\.(xlsx|pdf)$/, '.csv'), `${head}\n${body}`)
+  function submit() {
+    const rows = students.filter((student) => {
+      if (scope === 'all') return true
+      if (scope === 'studying') return student.status === 'studying'
+      return student.tuition === 'overdue'
+    })
+    rows.sort((first, second) => {
+      if (sort === 'name') return first.name.localeCompare(second.name, 'vi')
+      const firstDate = first.joined.split('/').reverse().join()
+      const secondDate = second.joined.split('/').reverse().join()
+      return secondDate.localeCompare(firstDate)
+    })
+
+    const header = selectedFields.map((field) => csvCell(field.label)).join(',')
+    let body = ''
+    if (type !== 'template') {
+      body = rows.map((student) => (
+        selectedFields.map((field) => csvCell(fieldValue(student, field.key))).join(',')
+      )).join('\n')
+    }
+    downloadText(fileName.replace(/\.(xlsx|pdf)$/, '.csv'), `${header}\n${body}`)
     onDone(fileName)
   }
 
@@ -53,13 +80,13 @@ export default function ExportModal({ students, total, onDone, onClose }) {
 
       <div className="exp-step">
         <b>2</b>Nội dung xuất
-        <button type="button" className="u-link" onClick={() => setCols(new Set(EXPORT_FIELDS.map((f) => f.key)))}>Chọn tất cả</button>
+        <button type="button" className="u-link" onClick={() => setSelectedColumns(new Set(EXPORT_FIELDS.map((field) => field.key)))}>Chọn tất cả</button>
       </div>
       <div className="exp-checks">
-        {EXPORT_FIELDS.map((f) => (
-          <CheckRow key={f.key} checked={cols.has(f.key)} disabled={f.locked} onChange={(on) => toggle(f.key, on)}>
-            {f.label}
-            {f.locked && <Lock size={12} className="u-faint" style={{ marginLeft: 'auto' }} />}
+        {EXPORT_FIELDS.map((field) => (
+          <CheckRow key={field.key} checked={selectedColumns.has(field.key)} disabled={field.locked} onChange={(on) => toggleColumn(field.key, on)}>
+            {field.label}
+            {field.locked && <Lock size={12} className="u-faint" style={{ marginLeft: 'auto' }} />}
           </CheckRow>
         ))}
       </div>
@@ -67,7 +94,7 @@ export default function ExportModal({ students, total, onDone, onClose }) {
       <div className="exp-step"><b>3</b>Định dạng &amp; phạm vi</div>
       <div className="exp-opts">
         <div className="u-seg">
-          {FORMATS.map(([v, l]) => <button key={v} type="button" className={format === v ? 'is-active' : ''} onClick={() => setFormat(v)}>{l}</button>)}
+          {FORMATS.map(([value, label]) => <button key={value} type="button" className={format === value ? 'is-active' : ''} onClick={() => setFormat(value)}>{label}</button>)}
         </div>
         <SelectField icon={Users} value={scope} onChange={(e) => setScope(e.target.value)} options={[
           { value: 'all', label: `Tất cả học viên (${total})` }, { value: 'studying', label: 'Chỉ học viên đang học' }, { value: 'overdue', label: 'Chỉ học viên quá hạn học phí' },

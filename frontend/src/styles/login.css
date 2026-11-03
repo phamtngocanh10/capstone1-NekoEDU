@@ -181,6 +181,8 @@
 .login__signup a {
   margin-left: 8px;
 }
+.login__error { padding: 10px 12px; border-radius: 8px; color: var(--danger-text); background: var(--danger-bg); font-size: 12px; line-height: 1.6; }
+.login__form .btn:disabled { opacity: .65; cursor: wait; }
 
 @media (max-width: 900px) {
   .login {

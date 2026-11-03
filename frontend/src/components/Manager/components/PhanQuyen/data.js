@@ -14,7 +14,12 @@ export const accountStore = createStore([
   { id: 'a7', name: 'Lê Minh Quân', email: 'quan.le@neko.edu.vn', role: 'Teaching Assistant', status: 'active', last: '12/09 09:20' },
   { id: 'a8', name: 'Nguyễn Thị Mai', email: 'mai.nguyen@gmail.com', role: 'Student / Parent', status: 'active', last: 'Hôm nay 07:12' },
 ])
-export const patchAccount = (id, patch) => accountStore.set((l) => l.map((a) => (a.id === id ? { ...a, ...patch } : a)))
+export function patchAccount(id, changes) {
+  accountStore.set((accounts) => accounts.map((account) => {
+    if (account.id !== id) return account
+    return { ...account, ...changes }
+  }))
+}
 
 export const LOCK_REASONS = ['Nghỉ phép dài ngày', 'Nghi ngờ truy cập bất thường', 'Vi phạm quy định trung tâm', 'Theo yêu cầu của người dùng', 'Lý do khác']
 

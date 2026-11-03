@@ -4,21 +4,28 @@ import { KeyRound, LogOut, User } from 'lucide-react'
 import useClickOutside from '../../../common/useClickOutside'
 import { initialOf, shortName, useManager } from './ManagerContext'
 
-export default function AvatarMenu() {
+export default function AvatarMenu({ profilePath = '/thongtincanhan' }) {
   const navigate = useNavigate()
   const { user, openPasswordModal } = useManager()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   useClickOutside(ref, () => setOpen(false), open)
 
-  const go = (fn) => () => {
+  function openProfile() {
     setOpen(false)
-    fn()
+    navigate(profilePath)
   }
 
-  const handleLogout = () => {
+  function changePassword() {
+    setOpen(false)
+    openPasswordModal()
+  }
+
+  function handleLogout() {
+    setOpen(false)
     // TODO: await logout() (src/api/profile.js) khi có backend
     localStorage.removeItem('access_token')
+    localStorage.removeItem('neko-auth-user')
     navigate('/login', { replace: true })
   }
 
@@ -28,7 +35,7 @@ export default function AvatarMenu() {
         className="user"
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen((isOpen) => !isOpen)}
       >
         <span className="avatar">{initialOf(user.name)}</span>
         <div>
@@ -46,14 +53,14 @@ export default function AvatarMenu() {
               <small>{user.email}</small>
             </div>
           </div>
-          <button role="menuitem" className="menu-item" onClick={go(() => navigate('/thongtincanhan'))}>
+          <button role="menuitem" className="menu-item" onClick={openProfile}>
             <User size={15} /> Thông tin cá nhân
           </button>
-          <button role="menuitem" className="menu-item" onClick={go(openPasswordModal)}>
+          <button role="menuitem" className="menu-item" onClick={changePassword}>
             <KeyRound size={15} /> Đổi mật khẩu
           </button>
           <hr />
-          <button role="menuitem" className="menu-item menu-item--danger" onClick={go(handleLogout)}>
+          <button role="menuitem" className="menu-item menu-item--danger" onClick={handleLogout}>
             <LogOut size={15} /> Đăng xuất
           </button>
         </div>

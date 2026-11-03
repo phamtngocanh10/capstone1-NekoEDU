@@ -7,9 +7,9 @@ export const STATUS = {
   draft: { label: 'Bản nháp', tone: 'gray' },
 }
 export const announceStore = createStore([
-  { id: 'ann-1', title: 'Khai giảng lớp KID TEEN 3B khóa mới', meta: 'Tất cả học viên · Hẹn giờ 25/09/2026 08:00 · 1 tệp', status: 'scheduled', read: null, audience: 'Tất cả học viên' },
+  { id: 'ann-1', title: 'Khai giảng lớp KID 3B khóa mới', meta: 'Tất cả học viên · Hẹn giờ 25/09/2026 08:00 · 1 tệp', status: 'scheduled', read: null, audience: 'Tất cả học viên' },
   { id: 'ann-2', title: 'Bảo trì hệ thống 23h00 – 24h00', meta: 'Tất cả tài khoản · 13/09/2026', status: 'sent', read: 46, audience: 'Tất cả tài khoản' },
-  { id: 'ann-3', title: 'Lịch thi giữa kỳ KID TEEN 2A', meta: 'Lớp KID TEEN 2A · 12/09/2026 · 2 tệp', status: 'sent', read: 100, audience: 'Lớp KID TEEN 2A' },
+  { id: 'ann-3', title: 'Lịch thi giữa kỳ KID 2A', meta: 'Lớp KID 2A · 12/09/2026 · 2 tệp', status: 'sent', read: 100, audience: 'Lớp KID 2A' },
   { id: 'ann-4', title: 'Nhắc học phí tháng 9 sắp đến hạn', meta: 'Học viên chưa đóng phí · 10/09/2026 · 1 tệp', status: 'sent', read: 83, audience: 'Học viên chưa đóng phí' },
   { id: 'ann-5', title: 'Nghỉ lễ Quốc khánh 2/9, học bù ngày 6/9', meta: 'Tất cả học viên · 02/09/2026 · 1 tệp', status: 'sent', read: 97, audience: 'Tất cả học viên' },
   { id: 'ann-6', title: 'Hướng dẫn thanh toán học phí online', meta: 'Học viên chưa đóng phí · Chưa gửi', status: 'draft', read: null, audience: 'Học viên chưa đóng phí' },
@@ -22,18 +22,18 @@ export const TEMPLATES = [
 ]
 export const TYPES = ['Lịch học', 'Học phí', 'Điểm số', 'Sự kiện', 'Hệ thống']
 export const CLASS_TARGETS = [
-  { name: 'KID TEEN 2A', n: 18 }, { name: 'KID TEEN 3B', n: 14 }, { name: 'KID TEEN 1B', n: 16 }, { name: 'KINDY 2A', n: 12 },
+  { name: 'KID 2A', n: 18 }, { name: 'KID 3B', n: 14 }, { name: 'KID 1B', n: 16 }, { name: 'KINDY 2A', n: 12 },
 ]
 
 // Chi tiết thông báo "Nhắc học phí tháng 9 sắp đến hạn" (Figma 16.2)
 export const RECIPIENTS = [
-  { id: 1, name: 'Trần Gia Bảo', className: 'KID TEEN 1B', at: '08:12', read: true },
-  { id: 2, name: 'Ngô Bảo Trâm', className: 'KID TEEN 1B', at: '08:30', read: true },
-  { id: 3, name: 'Nguyễn Gia Bảo', className: 'KID TEEN 2A', at: '09:05', read: true },
-  { id: 4, name: 'Đỗ Minh Anh', className: 'KID TEEN 3B', at: '—', read: false },
-  { id: 5, name: 'Lê Hoàng Phúc', className: 'KID TEEN 3B', at: '10:41', read: true },
-  { id: 6, name: 'Vũ Đăng Khoa', className: 'KID TEEN 2A', at: '—', read: false },
-  { id: 7, name: 'Bùi Thanh Tùng', className: 'KID TEEN 2A', at: '11:20', read: true },
+  { id: 1, name: 'Trần Gia Bảo', className: 'KID 1B', at: '08:12', read: true },
+  { id: 2, name: 'Ngô Bảo Trâm', className: 'KID 1B', at: '08:30', read: true },
+  { id: 3, name: 'Nguyễn Gia Bảo', className: 'KID 2A', at: '09:05', read: true },
+  { id: 4, name: 'Đỗ Minh Anh', className: 'KID 3B', at: '—', read: false },
+  { id: 5, name: 'Lê Hoàng Phúc', className: 'KID 3B', at: '10:41', read: true },
+  { id: 6, name: 'Vũ Đăng Khoa', className: 'KID 2A', at: '—', read: false },
+  { id: 7, name: 'Bùi Thanh Tùng', className: 'KID 2A', at: '11:20', read: true },
 ]
 export const REPLIES = [
   { id: 1, name: 'Chị Trần Thị Mai', at: '09:20', text: 'Đã chuyển khoản sáng nay, nhờ trung tâm kiểm tra giúp.' },

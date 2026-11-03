@@ -10,7 +10,12 @@ export default function NguyCo() {
   const { notify } = useManager()
   usePageHeader('Học viên nguy cơ chậm học phí', 'Trợ lý AI phát hiện dựa trên lịch sử thanh toán — cần rà soát trước 20/09')
   const [sent, setSent] = useState(() => new Set())
-  const total = RISKS.reduce((s, r) => s + r.debt, 0)
+  const total = RISKS.reduce((sum, student) => sum + student.debt, 0)
+
+  function remindStudent(student) {
+    setSent((sentIds) => new Set(sentIds).add(student.id))
+    notify(`Đã gửi nhắc học phí cho ${student.name}`)
+  }
 
   const columns = [
     { key: 'name', label: 'Học viên', width: '20%', render: (r) => <strong>{r.name}</strong> },
@@ -20,7 +25,7 @@ export default function NguyCo() {
     {
       key: 'act', label: 'Hành động', width: '16%',
       render: (r) => (
-        <Btn variant="soft" size="sm" disabled={sent.has(r.id)} onClick={() => { setSent((s) => new Set(s).add(r.id)); notify(`Đã gửi nhắc học phí cho ${r.name}`) }}>
+        <Btn variant="soft" size="sm" disabled={sent.has(r.id)} onClick={() => remindStudent(r)}>
           {sent.has(r.id) ? 'Đã nhắc' : 'Nhắc học phí'}
         </Btn>
       ),
