@@ -1,10 +1,12 @@
 from flask_smorest import Blueprint
 
 from app.controllers import auth_controller
+from app.middlewares.auth import auth_required
 from app.schemas.auth_schema import LoginResponseSchema, LoginSchema
 from app.schemas.common_schema import ErrorSchema
+from app.schemas.user_schema import UserSchema
 
-router = Blueprint("auth", __name__, description="Xác thực: đăng nhập")
+router = Blueprint("auth", __name__, description="Xác thực: đăng nhập, thông tin tài khoản hiện tại")
 
 
 @router.route("/login", methods=["POST"])
@@ -20,3 +22,11 @@ def login(payload):
     """
     return auth_controller.login(payload)
 
+
+@router.route("/me", methods=["GET"])
+@auth_required()
+@router.response(200, UserSchema)
+@router.alt_response(401, schema=ErrorSchema, description="Chưa đăng nhập, token không hợp lệ hoặc hết hạn")
+def get_me():
+    """Thông tin tài khoản đang đăng nhập"""
+    return auth_controller.get_me()

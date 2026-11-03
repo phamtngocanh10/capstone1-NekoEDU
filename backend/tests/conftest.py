@@ -1,6 +1,7 @@
 from datetime import date
 
 import pytest
+from flask_jwt_extended import create_access_token
 from flask_migrate import upgrade
 from sqlalchemy import select, text
 from sqlalchemy.engine import make_url
@@ -113,3 +114,16 @@ def users(create_user, create_staff) -> dict[str, int]:
         "assistant": create_staff("tg01", StaffPosition.TEACHING_ASSISTANT, "TG01"),
         "student": create_user("hs001", RoleCode.STUDENT_PARENT, email=None),
     }
+
+
+@pytest.fixture
+def auth_header(app):
+    """auth_header(user_id) -> {"Authorization": "Bearer <token>"}"""
+
+    def _header(user_id: int, **token_kwargs) -> dict[str, str]:
+        with app.app_context():
+            user = db.session.get(User, user_id)
+            token = create_access_token(identity=user, **token_kwargs)
+        return {"Authorization": f"Bearer {token}"}
+
+    return _header
