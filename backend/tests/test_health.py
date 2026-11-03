@@ -7,8 +7,13 @@ def test_health_ok(client):
     assert body["environment"] == "testing"
 
 
-def test_openapi_spec_lists_health_endpoint(client):
-    res = client.get("/openapi.json")
+def test_openapi_spec_documents_auth(client):
+    spec = client.get("/openapi.json").get_json()
 
-    assert res.status_code == 200
-    assert "/api/v1/health" in res.get_json()["paths"]
+    assert spec["components"]["securitySchemes"]["bearerAuth"]["scheme"] == "bearer"
+    # Mặc định mọi API cần Bearer token, riêng login và health là public
+    assert spec["security"] == [{"bearerAuth": []}]
+    assert spec["paths"]["/api/v1/auth/login"]["post"]["security"] == []
+    assert spec["paths"]["/api/v1/health"]["get"]["security"] == []
+    assert "security" not in spec["paths"]["/api/v1/auth/me"]["get"]
+    assert {"401", "403"} <= set(spec["paths"]["/api/v1/users"]["get"]["responses"])
