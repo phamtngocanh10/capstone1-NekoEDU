@@ -23,7 +23,7 @@ ROLES = {
 _AUTO = object()
 
 TABLES_CHILD_FIRST = (
-    "audit_logs", "policy_documents", "ai_alerts", "notifications",
+    "student_user_links", "revoked_tokens", "audit_logs", "policy_documents", "ai_alerts", "notifications",
     "finance_transactions", "finance_categories", "staff_payrolls", "receipts",
     "payments", "tuition_invoices", "student_discounts", "discount_policies",
     "student_requests", "attendances", "class_sessions", "class_enrollments",
@@ -133,7 +133,11 @@ def auth_header(app):
     def _header(user_id: int, **token_kwargs) -> dict[str, str]:
         with app.app_context():
             user = db.session.get(User, user_id)
-            token = create_access_token(identity=user, **token_kwargs)
+            token = create_access_token(
+                identity=user,
+                additional_claims={"ver": user.auth_version},
+                **token_kwargs,
+            )
         return {"Authorization": f"Bearer {token}"}
 
     return _header

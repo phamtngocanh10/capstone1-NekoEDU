@@ -3,6 +3,8 @@ SET NOCOUNT ON;
 SET XACT_ABORT ON;
 BEGIN TRY
     BEGIN TRANSACTION;
+    DELETE FROM student_user_links;
+    DELETE FROM revoked_tokens;
     DELETE FROM audit_logs;
     DELETE FROM policy_documents;
     DELETE FROM ai_alerts;
@@ -30,6 +32,8 @@ BEGIN TRY
     DELETE FROM staff_profiles;
     DELETE FROM users;
     DELETE FROM roles;
+    DBCC CHECKIDENT (N'student_user_links', RESEED, 0) WITH NO_INFOMSGS;
+    DBCC CHECKIDENT (N'revoked_tokens', RESEED, 0) WITH NO_INFOMSGS;
     DBCC CHECKIDENT (N'audit_logs', RESEED, 0) WITH NO_INFOMSGS;
     DBCC CHECKIDENT (N'policy_documents', RESEED, 0) WITH NO_INFOMSGS;
     DBCC CHECKIDENT (N'ai_alerts', RESEED, 0) WITH NO_INFOMSGS;
@@ -429,13 +433,13 @@ BEGIN TRY
     SET IDENTITY_INSERT levels ON;
     INSERT INTO levels (id, code, name, min_age, max_age, sort_order) VALUES
     (1, N'KINDY', N'Kindy (Mầm non)', 3, 5, 1),
-    (2, N'KID 1', N'Kid 1', 5, 6, 2),
-    (3, N'KID 2', N'Kid 2', 6, 7, 3),
-    (4, N'KID 3', N'Kid 3', 7, 8, 4),
-    (5, N'KID 4', N'Kid 4', 8, 9, 5),
-    (6, N'TEEN 1', N'Teen 1', 10, 11, 6),
-    (7, N'TEEN 2', N'Teen 2', 11, 12, 7),
-    (8, N'TEEN 3', N'Teen 3', 12, 14, 8);
+    (2, N'KID_1', N'Kid 1', 5, 6, 2),
+    (3, N'KID_2', N'Kid 2', 6, 7, 3),
+    (4, N'KID_3', N'Kid 3', 7, 8, 4),
+    (5, N'KID_4', N'Kid 4', 8, 9, 5),
+    (6, N'TEEN_1', N'Teen 1', 10, 11, 6),
+    (7, N'TEEN_2', N'Teen 2', 11, 12, 7),
+    (8, N'TEEN_3', N'Teen 3', 12, 14, 8);
     SET IDENTITY_INSERT levels OFF;
     SET IDENTITY_INSERT students ON;
     INSERT INTO students (id, student_code, full_name, english_name, date_of_birth, guardian_id, user_id, current_level_id, enrolled_at, status, note, created_at, updated_at) VALUES
@@ -610,6 +614,8 @@ BEGIN TRY
     (169, N'HS169', N'Lê Hữu Nhân', N'Chloe', N'2012-05-12', 152, 184, 8, N'2024-08-19', N'ACTIVE', NULL, N'2024-08-19 10:00:00+07:00', N'2024-08-19 10:00:00+07:00'),
     (170, N'HS170', N'Nguyễn Xuân Dũng', N'Sam', N'2013-06-28', 153, 185, 8, N'2025-06-01', N'ACTIVE', NULL, N'2025-06-01 10:00:00+07:00', N'2025-06-01 10:00:00+07:00');
     SET IDENTITY_INSERT students OFF;
+    INSERT INTO student_user_links (user_id, student_id, relationship, can_view)
+    SELECT user_id, id, N'SELF', 1 FROM students WHERE user_id IS NOT NULL;
     SET IDENTITY_INSERT admission_leads ON;
     INSERT INTO admission_leads (id, lead_code, child_full_name, child_dob, guardian_name, guardian_phone, source, interested_level_id, placement_score, status, student_id, consultant_user_id, converted_at, note, created_at) VALUES
     (1, N'LD-202301-0001', N'Nguyễn Minh Vy', N'2017-03-21', N'Nguyễn Thị Mai', N'0904114606', N'WALK_IN', 2, NULL, N'LOST', NULL, 2, NULL, N'Chưa sắp xếp được lịch', N'2023-01-06 10:06:00+07:00'),
