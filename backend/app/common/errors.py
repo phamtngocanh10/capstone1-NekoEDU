@@ -31,6 +31,10 @@ class ForbiddenError(AppError):
     status_code = HTTPStatus.FORBIDDEN
 
 
+class ConflictError(AppError):
+    status_code = HTTPStatus.CONFLICT
+
+
 def error_response(status_code: int, message: str, errors: dict | None = None):
     status = HTTPStatus(status_code)
     body = {"code": status.value, "status": status.phrase, "message": message}

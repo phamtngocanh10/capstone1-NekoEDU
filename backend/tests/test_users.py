@@ -90,7 +90,12 @@ def test_get_user_detail(client, users, manager_headers):
     res = client.get(f"{USERS_URL}/{users['student']}", headers=manager_headers)
 
     assert res.status_code == 200
-    assert res.get_json()["username"] == "hs001"
+    body = res.get_json()
+    assert body["username"] == "hs001"
+    assert body["role"]["code"] == "STUDENT_PARENT"
+    assert body["status"] == "ACTIVE"
+    assert "password" not in body
+    assert "password_hash" not in body
 
 
 def test_get_unknown_user_returns_404(client, manager_headers):

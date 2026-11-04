@@ -7,7 +7,7 @@ from datetime import timedelta
 
 import jwt as pyjwt
 import pytest
-from sqlalchemy import delete, update
+from sqlalchemy import delete, text, update
 
 from app.extensions import db
 from app.middlewares.auth import (
@@ -40,7 +40,80 @@ def test_me_returns_current_user(client, users, auth_header):
     assert body["id"] == users["lecturer"]
     assert body["username"] == "gv01"
     assert body["role"]["code"] == "LECTURER"
+    assert body["status"] == "ACTIVE"
+    assert body["profile"] | {"id": None} == {
+        "type": "STAFF",
+        "id": None,
+        "staff_code": "GV01",
+        "position": "LECTURER",
+        "specialization": None,
+        "hire_date": "2025-01-01",
+        "status": "ACTIVE",
+    }
     assert "password_hash" not in body
+
+
+def test_me_returns_student_and_guardian_profile(app, client, users, auth_header):
+    with app.app_context():
+        guardian_id = db.session.execute(
+            text(
+                """INSERT INTO guardians
+                   (full_name, phone, email, relationship)
+                   OUTPUT INSERTED.id
+                   VALUES (N'Nguyễn Văn Phụ Huynh', '0901234567',
+                           'parent@example.com', 'FATHER')"""
+            )
+        ).scalar_one()
+        level_id = db.session.execute(
+            text(
+                """INSERT INTO levels (code, name, min_age, max_age, sort_order)
+                   OUTPUT INSERTED.id
+                   VALUES ('KID_1', N'Kid 1', 6, 7, 1)"""
+            )
+        ).scalar_one()
+        student_id = db.session.execute(
+            text(
+                """INSERT INTO students
+                   (student_code, full_name, english_name, date_of_birth,
+                    guardian_id, user_id, current_level_id, enrolled_at, status)
+                   OUTPUT INSERTED.id
+                   VALUES ('HS001', N'Nguyễn Minh Anh', 'Anna', '2018-05-10',
+                           :guardian_id, :user_id, :level_id, '2025-06-01', 'ACTIVE')"""
+            ),
+            {"guardian_id": guardian_id, "user_id": users["student"], "level_id": level_id},
+        ).scalar_one()
+        db.session.commit()
+
+    res = client.get(ME_URL, headers=auth_header(users["student"]))
+
+    assert res.status_code == 200
+    assert res.get_json()["profile"] == {
+        "type": "STUDENT",
+        "id": student_id,
+        "student_code": "HS001",
+        "full_name": "Nguyễn Minh Anh",
+        "english_name": "Anna",
+        "date_of_birth": "2018-05-10",
+        "enrolled_at": "2025-06-01",
+        "status": "ACTIVE",
+        "level": {"id": level_id, "code": "KID_1", "name": "Kid 1"},
+        "guardian": {
+            "id": guardian_id,
+            "full_name": "Nguyễn Văn Phụ Huynh",
+            "phone": "0901234567",
+            "email": "parent@example.com",
+            "relationship": "FATHER",
+        },
+    }
+
+
+def test_me_returns_null_profile_when_account_is_not_linked(client, create_user, auth_header):
+    user_id = create_user("mg09")
+
+    res = client.get(ME_URL, headers=auth_header(user_id))
+
+    assert res.status_code == 200
+    assert res.get_json()["profile"] is None
 
 
 def test_login_then_call_private_api(client, users):

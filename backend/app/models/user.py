@@ -6,6 +6,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Identity,
+    Integer,
     Index,
     Unicode,
     UniqueConstraint,
@@ -56,6 +57,7 @@ class User(db.Model):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=text("SYSDATETIMEOFFSET()")
     )
+    auth_version: Mapped[int] = mapped_column(Integer, server_default=text("0"))
 
     # Luôn cần role để phân quyền nên load kèm ngay khi lấy user
     role: Mapped[Role] = relationship(lazy="joined")

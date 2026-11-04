@@ -6,6 +6,7 @@ kiểu dữ liệu và tên constraint phải khớp schema; kiểm tra bằng: 
 
 from app.models.audit_log import AuditAction, AuditLog
 from app.models.role import STAFF_ROLES, Role, RoleCode
+from app.models.revoked_token import RevokedToken
 from app.models.staff_profile import StaffPosition, StaffProfile, StaffStatus
 from app.models.user import User, UserStatus
 
@@ -15,6 +16,7 @@ __all__ = [
     "AuditLog",
     "Role",
     "RoleCode",
+    "RevokedToken",
     "StaffPosition",
     "StaffProfile",
     "StaffStatus",
