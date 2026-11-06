@@ -182,6 +182,89 @@ class StudentUpdateSchema(Schema):
             raise ValidationError("Cần cung cấp ít nhất một trường để cập nhật")
 
 
+class StudentLevelTransferInputSchema(Schema):
+    new_level_id = fields.Integer(required=True, strict=True, validate=validate.Range(min=1))
+    effective_date = fields.Date(required=True)
+    reason = fields.String(required=True, validate=validate.Length(min=1, max=500))
+
+    @pre_load
+    def normalize(self, data, **kwargs):
+        return _normalize_strings(data, ("reason",))
+
+
+class StudentLevelTransferSchema(Schema):
+    id = fields.Integer()
+    student_id = fields.Integer()
+    old_level = fields.Nested(StudentLevelSchema)
+    new_level = fields.Nested(StudentLevelSchema)
+    effective_date = fields.Date()
+    reason = fields.String()
+    transferred_by = fields.Integer()
+    created_at = fields.DateTime()
+
+
+class LearningHistoryClassSchema(Schema):
+    id = fields.Integer()
+    code = fields.String()
+    name = fields.String()
+
+
+class LearningHistoryCourseSchema(Schema):
+    id = fields.Integer()
+    code = fields.String()
+    name = fields.String()
+
+
+class LearningHistoryEnrollmentSchema(Schema):
+    id = fields.Integer()
+    class_info = fields.Nested(
+        LearningHistoryClassSchema, attribute="class", data_key="class"
+    )
+    course = fields.Nested(LearningHistoryCourseSchema)
+    level = fields.Nested(StudentLevelSchema)
+    enrolled_date = fields.Date()
+    left_date = fields.Date(allow_none=True)
+    status = fields.String()
+
+
+class PlacementAssessmentSchema(Schema):
+    lead_id = fields.Integer()
+    lead_code = fields.String()
+    score = fields.Float(allow_none=True)
+    status = fields.String()
+    assessed_level = fields.Nested(StudentLevelSchema, allow_none=True)
+
+
+class LearningHistoryAssessmentSchema(Schema):
+    id = fields.Integer()
+    title = fields.String()
+    assessment_type = fields.String()
+    test_date = fields.Date()
+    status = fields.String()
+
+
+class LearningHistoryAssessmentResultSchema(Schema):
+    id = fields.Integer()
+    assessment = fields.Nested(LearningHistoryAssessmentSchema)
+    class_info = fields.Nested(
+        LearningHistoryClassSchema, attribute="class", data_key="class"
+    )
+    level = fields.Nested(StudentLevelSchema)
+    score = fields.Float()
+    comment = fields.String(allow_none=True)
+    recorded_at = fields.DateTime()
+    updated_at = fields.DateTime()
+
+
+class StudentLearningHistorySchema(Schema):
+    student_id = fields.Integer()
+    current_level = fields.Nested(StudentLevelSchema)
+    level_transfers = fields.List(fields.Nested(StudentLevelTransferSchema))
+    enrollments = fields.List(fields.Nested(LearningHistoryEnrollmentSchema))
+    placement_assessment = fields.Nested(PlacementAssessmentSchema, allow_none=True)
+    assessment_results = fields.List(fields.Nested(LearningHistoryAssessmentResultSchema))
+
+
 def _normalize_strings(data, field_names):
     if not isinstance(data, dict):
         return data

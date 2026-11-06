@@ -27,3 +27,16 @@ def update_student(student_id: int, payload: dict):
         actor=current_user,
         ip_address=request.remote_addr,
     )
+
+
+def transfer_student_level(student_id: int, payload: dict):
+    return student_service.transfer_student_level(
+        student_id,
+        payload,
+        actor=current_user,
+        ip_address=request.remote_addr,
+    )
+
+
+def get_learning_history(student_id: int):
+    return student_service.get_learning_history(student_id, actor=current_user)

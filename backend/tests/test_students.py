@@ -1,3 +1,6 @@
+import json
+from datetime import date, timedelta
+
 import pytest
 from sqlalchemy import select, text
 
@@ -227,6 +230,308 @@ def test_student_list_validates_filters(client, users, auth_header, student_scop
 
 def test_student_list_requires_auth_before_filter_validation(client):
     assert client.get(f"{STUDENTS_URL}?page=bad").status_code == 401
+
+
+def transfer_url(student_id):
+    return f"{STUDENTS_URL}/{student_id}/level-transfers"
+
+
+def transfer_payload(level_id, **overrides):
+    payload = {
+        "new_level_id": level_id,
+        "effective_date": date.today().isoformat(),
+        "reason": "Đã hoàn thành yêu cầu của cấp độ hiện tại",
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_f19_manager_transfers_level_and_records_immutable_history(
+    app, client, users, auth_header, student_scope
+):
+    student_id = student_scope["students"][0]
+    old_level_id, new_level_id = student_scope["levels"]
+
+    res = client.post(
+        transfer_url(student_id),
+        headers=auth_header(users["manager"]),
+        json=transfer_payload(new_level_id, reason="  Đủ năng lực chuyển cấp  "),
+    )
+
+    assert res.status_code == 201
+    body = res.get_json()
+    assert body["student_id"] == student_id
+    assert body["old_level"]["id"] == old_level_id
+    assert body["new_level"]["id"] == new_level_id
+    assert body["reason"] == "Đủ năng lực chuyển cấp"
+    assert body["transferred_by"] == users["manager"]
+    with app.app_context():
+        student_level = db.session.execute(
+            text("SELECT current_level_id FROM students WHERE id = :id"), {"id": student_id}
+        ).scalar_one()
+        history = db.session.execute(
+            text(
+                "SELECT old_level_id, new_level_id, reason, transferred_by "
+                "FROM student_level_transfers WHERE student_id = :id"
+            ),
+            {"id": student_id},
+        ).mappings().one()
+        audit = db.session.execute(
+            text(
+                "SELECT action, old_data, new_data FROM audit_logs "
+                "WHERE entity_name = 'student_level_transfers' AND entity_id = :id"
+            ),
+            {"id": body["id"]},
+        ).mappings().one()
+    assert student_level == new_level_id
+    assert dict(history) == {
+        "old_level_id": old_level_id,
+        "new_level_id": new_level_id,
+        "reason": "Đủ năng lực chuyển cấp",
+        "transferred_by": users["manager"],
+    }
+    assert audit["action"] == "UPDATE"
+    assert json.loads(audit["old_data"])["level_id"] == old_level_id
+    assert json.loads(audit["new_data"])["level_id"] == new_level_id
+
+
+@pytest.mark.parametrize("actor", ["lecturer", "assistant", "student"])
+def test_f19_only_manager_can_transfer_level(
+    client, users, auth_header, student_scope, actor
+):
+    res = client.post(
+        transfer_url(student_scope["students"][0]),
+        headers=auth_header(users[actor]),
+        json=transfer_payload(student_scope["levels"][1]),
+    )
+    assert res.status_code == 403
+
+
+def test_f19_requires_authentication_before_payload_validation(client, student_scope):
+    assert client.post(transfer_url(student_scope["students"][0]), json={}).status_code == 401
+
+
+@pytest.mark.parametrize(
+    ("overrides", "field"),
+    [
+        ({"new_level_id": 0}, "new_level_id"),
+        ({"new_level_id": "2"}, "new_level_id"),
+        ({"effective_date": "khong-phai-ngay"}, "effective_date"),
+        ({"reason": "   "}, "reason"),
+        ({"reason": "x" * 501}, "reason"),
+    ],
+)
+def test_f19_validates_transfer_payload(
+    client, users, auth_header, student_scope, overrides, field
+):
+    payload = transfer_payload(student_scope["levels"][1], **overrides)
+    res = client.post(
+        transfer_url(student_scope["students"][0]),
+        headers=auth_header(users["manager"]),
+        json=payload,
+    )
+    assert res.status_code == 422
+    assert field in res.get_json()["errors"]["json"]
+
+
+def test_f19_rejects_missing_student_or_level(client, users, auth_header, student_scope):
+    headers = auth_header(users["manager"])
+    missing_student = client.post(
+        transfer_url(999999),
+        headers=headers,
+        json=transfer_payload(student_scope["levels"][1]),
+    )
+    missing_level = client.post(
+        transfer_url(student_scope["students"][0]),
+        headers=headers,
+        json=transfer_payload(999999),
+    )
+    assert missing_student.status_code == 404
+    assert missing_level.status_code == 404
+
+
+def test_f19_rejects_same_level_without_writing_history(
+    app, client, users, auth_header, student_scope
+):
+    student_id = student_scope["students"][0]
+    res = client.post(
+        transfer_url(student_id),
+        headers=auth_header(users["manager"]),
+        json=transfer_payload(student_scope["levels"][0]),
+    )
+    assert res.status_code == 409
+    with app.app_context():
+        assert db.session.execute(
+            text("SELECT COUNT(*) FROM student_level_transfers WHERE student_id = :id"),
+            {"id": student_id},
+        ).scalar_one() == 0
+
+
+@pytest.mark.parametrize(
+    ("effective_date", "message"),
+    [
+        ("2024-12-31", "trước ngày nhập học"),
+        ((date.today() + timedelta(days=1)).isoformat(), "ở tương lai"),
+    ],
+)
+def test_f19_rejects_invalid_effective_date(
+    client, users, auth_header, student_scope, effective_date, message
+):
+    res = client.post(
+        transfer_url(student_scope["students"][0]),
+        headers=auth_header(users["manager"]),
+        json=transfer_payload(student_scope["levels"][1], effective_date=effective_date),
+    )
+    assert res.status_code == 400
+    assert message in res.get_json()["message"]
+
+
+def test_f19_requires_each_transfer_to_be_later_and_preserves_enrollment(
+    app, client, users, auth_header, student_scope
+):
+    student_id = student_scope["students"][0]
+    old_level_id, new_level_id = student_scope["levels"]
+    headers = auth_header(users["manager"])
+    first_date = date.today() - timedelta(days=1)
+    first = client.post(
+        transfer_url(student_id),
+        headers=headers,
+        json=transfer_payload(new_level_id, effective_date=first_date.isoformat()),
+    )
+    assert first.status_code == 201
+
+    duplicate_or_backdated = client.post(
+        transfer_url(student_id),
+        headers=headers,
+        json=transfer_payload(old_level_id, effective_date=first_date.isoformat()),
+    )
+    assert duplicate_or_backdated.status_code == 409
+
+    second = client.post(
+        transfer_url(student_id),
+        headers=headers,
+        json=transfer_payload(old_level_id),
+    )
+    assert second.status_code == 201
+    with app.app_context():
+        assert db.session.execute(
+            text("SELECT COUNT(*) FROM student_level_transfers WHERE student_id = :id"),
+            {"id": student_id},
+        ).scalar_one() == 2
+        assert db.session.execute(
+            text("SELECT COUNT(*) FROM class_enrollments WHERE student_id = :id"),
+            {"id": student_id},
+        ).scalar_one() == 1
+
+
+def learning_history_url(student_id):
+    return f"{STUDENTS_URL}/{student_id}/learning-history"
+
+
+def test_f20_learning_history_aggregates_level_class_enrollment_and_placement_score(
+    app, client, users, auth_header, student_scope
+):
+    student_id = student_scope["students"][0]
+    old_level_id, new_level_id = student_scope["levels"]
+    with app.app_context():
+        db.session.execute(
+            text(
+                """INSERT INTO admission_leads
+                    (lead_code, child_full_name, child_dob, guardian_name, guardian_phone,
+                     source, interested_level_id, placement_score, status, student_id,
+                     consultant_user_id, converted_at)
+                   VALUES
+                    ('LEAD-F20', N'Nguyễn Minh Anh', '2018-01-01', N'Nguyễn Phụ Huynh',
+                     '0901234567', 'REFERRAL', :level_id, 8.5, 'ENROLLED', :student_id,
+                     :manager_id, :converted_at)"""
+            ),
+            {
+                "level_id": old_level_id,
+                "student_id": student_id,
+                "manager_id": users["manager"],
+                "converted_at": date.today(),
+            },
+        )
+        db.session.commit()
+    transfer = client.post(
+        transfer_url(student_id),
+        headers=auth_header(users["manager"]),
+        json=transfer_payload(new_level_id),
+    )
+    assert transfer.status_code == 201
+
+    res = client.get(
+        learning_history_url(student_id), headers=auth_header(users["manager"])
+    )
+
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body["student_id"] == student_id
+    assert body["current_level"]["id"] == new_level_id
+    assert len(body["level_transfers"]) == 1
+    assert body["level_transfers"][0]["old_level"]["id"] == old_level_id
+    assert body["level_transfers"][0]["new_level"]["id"] == new_level_id
+    assert len(body["enrollments"]) == 1
+    assert body["enrollments"][0]["class"]["id"] == student_scope["classes"][0]
+    assert body["enrollments"][0]["level"]["id"] == old_level_id
+    assert body["enrollments"][0]["status"] == "ACTIVE"
+    assert body["placement_assessment"] == {
+        "lead_id": body["placement_assessment"]["lead_id"],
+        "lead_code": "LEAD-F20",
+        "score": 8.5,
+        "status": "ENROLLED",
+        "assessed_level": {"id": old_level_id, "code": "KID_1", "name": "Kid 1"},
+    }
+    assert body["assessment_results"] == []
+
+
+@pytest.mark.parametrize("actor", ["manager", "lecturer", "assistant", "student"])
+def test_f20_authorized_roles_see_history_in_their_student_scope(
+    client, users, auth_header, student_scope, actor
+):
+    res = client.get(
+        learning_history_url(student_scope["students"][0]),
+        headers=auth_header(users[actor]),
+    )
+    assert res.status_code == 200
+
+
+def test_f20_denies_unassigned_or_unlinked_student_scope(
+    client, users, auth_header, student_scope
+):
+    outsider = client.get(
+        learning_history_url(student_scope["students"][0]),
+        headers=auth_header(student_scope["outsider"]),
+    )
+    unlinked_parent = client.get(
+        learning_history_url(student_scope["students"][1]),
+        headers=auth_header(users["student"]),
+    )
+    assert outsider.status_code == 403
+    assert unlinked_parent.status_code == 403
+
+
+def test_f20_requires_authentication(client, student_scope):
+    assert client.get(learning_history_url(student_scope["students"][0])).status_code == 401
+
+
+def test_f20_returns_not_found_for_missing_student(client, users, auth_header, student_scope):
+    res = client.get(learning_history_url(999999), headers=auth_header(users["manager"]))
+    assert res.status_code == 404
+
+
+def test_f20_returns_explicit_empty_history_sections(
+    client, users, auth_header, student_scope
+):
+    res = client.get(
+        learning_history_url(student_scope["students"][2]),
+        headers=auth_header(users["manager"]),
+    )
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body["level_transfers"] == []
+    assert body["placement_assessment"] is None
+    assert body["assessment_results"] == []
 
 
 def student_payload(scope, **overrides):

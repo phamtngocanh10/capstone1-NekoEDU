@@ -308,6 +308,295 @@ def update_student(
     return get_student_detail_row(student_id)
 
 
+def transfer_student_level(
+    student_id: int,
+    payload: dict,
+    *,
+    actor: User,
+    ip_address: str | None,
+) -> dict:
+    student = db.session.execute(
+        text(
+            """
+            SELECT id, current_level_id, enrolled_at
+            FROM students WITH (UPDLOCK, ROWLOCK)
+            WHERE id = :student_id
+            """
+        ),
+        {"student_id": student_id},
+    ).mappings().one_or_none()
+    if student is None:
+        raise NotFoundError("Không tìm thấy học viên")
+
+    new_level_id = payload["new_level_id"]
+    _ensure_level_exists(new_level_id)
+    if new_level_id == student["current_level_id"]:
+        raise ConflictError("Cấp độ mới phải khác cấp độ hiện tại")
+
+    effective_date = payload["effective_date"]
+    if effective_date < student["enrolled_at"]:
+        raise AppError("Ngày chuyển cấp không được trước ngày nhập học")
+    if effective_date > date.today():
+        raise AppError("Ngày chuyển cấp không được ở tương lai")
+    latest_date = db.session.execute(
+        text(
+            """
+            SELECT MAX(effective_date)
+            FROM student_level_transfers
+            WHERE student_id = :student_id
+            """
+        ),
+        {"student_id": student_id},
+    ).scalar_one()
+    if latest_date is not None and effective_date <= latest_date:
+        raise ConflictError("Ngày chuyển cấp phải sau lần chuyển cấp gần nhất")
+
+    try:
+        transfer_id = db.session.execute(
+            text(
+                """
+                INSERT INTO student_level_transfers
+                    (student_id, old_level_id, new_level_id, effective_date,
+                     reason, transferred_by)
+                OUTPUT INSERTED.id
+                VALUES
+                    (:student_id, :old_level_id, :new_level_id, :effective_date,
+                     :reason, :transferred_by)
+                """
+            ),
+            {
+                "student_id": student_id,
+                "old_level_id": student["current_level_id"],
+                "new_level_id": new_level_id,
+                "effective_date": effective_date,
+                "reason": payload["reason"],
+                "transferred_by": actor.id,
+            },
+        ).scalar_one()
+        db.session.execute(
+            text(
+                """
+                UPDATE students
+                SET current_level_id = :new_level_id,
+                    updated_at = SYSDATETIMEOFFSET()
+                WHERE id = :student_id
+                """
+            ),
+            {"student_id": student_id, "new_level_id": new_level_id},
+        )
+        db.session.add(
+            AuditLog(
+                actor_user_id=actor.id,
+                action=AuditAction.UPDATE,
+                entity_name="student_level_transfers",
+                entity_id=transfer_id,
+                old_data={"student_id": student_id, "level_id": student["current_level_id"]},
+                new_data={
+                    "student_id": student_id,
+                    "level_id": new_level_id,
+                    "effective_date": effective_date.isoformat(),
+                    "reason": payload["reason"],
+                },
+                ip_address=ip_address,
+            )
+        )
+        db.session.commit()
+    except IntegrityError as exc:
+        db.session.rollback()
+        raise ConflictError("Học viên đã có lần chuyển cấp vào ngày này") from exc
+    return _get_level_transfer(transfer_id)
+
+
+def _get_level_transfer(transfer_id: int) -> dict:
+    row = db.session.execute(
+        text(
+            """
+            SELECT t.id, t.student_id, t.effective_date, t.reason,
+                   t.transferred_by, t.created_at,
+                   old_l.id AS old_level_id, old_l.code AS old_level_code,
+                   old_l.name AS old_level_name,
+                   new_l.id AS new_level_id, new_l.code AS new_level_code,
+                   new_l.name AS new_level_name
+            FROM student_level_transfers t
+            JOIN levels old_l ON old_l.id = t.old_level_id
+            JOIN levels new_l ON new_l.id = t.new_level_id
+            WHERE t.id = :transfer_id
+            """
+        ),
+        {"transfer_id": transfer_id},
+    ).mappings().one()
+    return {
+        "id": row["id"],
+        "student_id": row["student_id"],
+        "old_level": {
+            "id": row["old_level_id"],
+            "code": row["old_level_code"],
+            "name": row["old_level_name"],
+        },
+        "new_level": {
+            "id": row["new_level_id"],
+            "code": row["new_level_code"],
+            "name": row["new_level_name"],
+        },
+        "effective_date": row["effective_date"],
+        "reason": row["reason"],
+        "transferred_by": row["transferred_by"],
+        "created_at": row["created_at"],
+    }
+
+
+def get_learning_history(student_id: int, *, actor: User) -> dict:
+    require_student_access(actor, student_id)
+    current_level = db.session.execute(
+        text(
+            """
+            SELECT l.id, l.code, l.name
+            FROM students s
+            JOIN levels l ON l.id = s.current_level_id
+            WHERE s.id = :student_id
+            """
+        ),
+        {"student_id": student_id},
+    ).mappings().one()
+    transfer_ids = db.session.execute(
+        text(
+            """
+            SELECT id
+            FROM student_level_transfers
+            WHERE student_id = :student_id
+            ORDER BY effective_date, id
+            """
+        ),
+        {"student_id": student_id},
+    ).scalars().all()
+    enrollment_rows = db.session.execute(
+        text(
+            """
+            SELECT ce.id, ce.enrolled_date, ce.left_date, ce.status,
+                   c.id AS class_id, c.class_code, c.name AS class_name,
+                   co.id AS course_id, co.course_code, co.name AS course_name,
+                   l.id AS level_id, l.code AS level_code, l.name AS level_name
+            FROM class_enrollments ce
+            JOIN classes c ON c.id = ce.class_id
+            JOIN courses co ON co.id = c.course_id
+            JOIN levels l ON l.id = co.level_id
+            WHERE ce.student_id = :student_id
+            ORDER BY ce.enrolled_date, ce.id
+            """
+        ),
+        {"student_id": student_id},
+    ).mappings().all()
+    placement_row = db.session.execute(
+        text(
+            """
+            SELECT TOP 1 al.id, al.lead_code, al.placement_score, al.status,
+                         l.id AS level_id, l.code AS level_code, l.name AS level_name
+            FROM admission_leads al
+            LEFT JOIN levels l ON l.id = al.interested_level_id
+            WHERE al.student_id = :student_id
+            ORDER BY al.converted_at DESC, al.id DESC
+            """
+        ),
+        {"student_id": student_id},
+    ).mappings().one_or_none()
+    result_conditions = ["ar.student_id = :student_id"]
+    if actor.role.code == RoleCode.STUDENT_PARENT:
+        result_conditions.append("a.status = 'PUBLISHED'")
+    result_rows = db.session.execute(
+        text(
+            f"""
+            SELECT ar.id, ar.score, ar.comment, ar.recorded_at, ar.updated_at,
+                   a.id AS assessment_id, a.title, a.assessment_type,
+                   a.test_date, a.status AS assessment_status,
+                   c.id AS class_id, c.class_code, c.name AS class_name,
+                   l.id AS level_id, l.code AS level_code, l.name AS level_name
+            FROM assessment_results ar
+            JOIN assessments a ON a.id = ar.assessment_id
+            JOIN classes c ON c.id = a.class_id
+            JOIN levels l ON l.id = a.level_id
+            WHERE {' AND '.join(result_conditions)}
+            ORDER BY a.test_date, a.id, ar.id
+            """
+        ),
+        {"student_id": student_id},
+    ).mappings().all()
+    return {
+        "student_id": student_id,
+        "current_level": dict(current_level),
+        "level_transfers": [_get_level_transfer(item_id) for item_id in transfer_ids],
+        "enrollments": [
+            {
+                "id": row["id"],
+                "class": {
+                    "id": row["class_id"],
+                    "code": row["class_code"],
+                    "name": row["class_name"],
+                },
+                "course": {
+                    "id": row["course_id"],
+                    "code": row["course_code"],
+                    "name": row["course_name"],
+                },
+                "level": {
+                    "id": row["level_id"],
+                    "code": row["level_code"],
+                    "name": row["level_name"],
+                },
+                "enrolled_date": row["enrolled_date"],
+                "left_date": row["left_date"],
+                "status": row["status"],
+            }
+            for row in enrollment_rows
+        ],
+        "placement_assessment": (
+            {
+                "lead_id": placement_row["id"],
+                "lead_code": placement_row["lead_code"],
+                "score": placement_row["placement_score"],
+                "status": placement_row["status"],
+                "assessed_level": (
+                    {
+                        "id": placement_row["level_id"],
+                        "code": placement_row["level_code"],
+                        "name": placement_row["level_name"],
+                    }
+                    if placement_row["level_id"] is not None
+                    else None
+                ),
+            }
+            if placement_row is not None
+            else None
+        ),
+        "assessment_results": [
+            {
+                "id": row["id"],
+                "assessment": {
+                    "id": row["assessment_id"],
+                    "title": row["title"],
+                    "assessment_type": row["assessment_type"],
+                    "test_date": row["test_date"],
+                    "status": row["assessment_status"],
+                },
+                "class": {
+                    "id": row["class_id"],
+                    "code": row["class_code"],
+                    "name": row["class_name"],
+                },
+                "level": {
+                    "id": row["level_id"],
+                    "code": row["level_code"],
+                    "name": row["level_name"],
+                },
+                "score": row["score"],
+                "comment": row["comment"],
+                "recorded_at": row["recorded_at"],
+                "updated_at": row["updated_at"],
+            }
+            for row in result_rows
+        ],
+    }
+
+
 def _validate_student_dates(date_of_birth: date, enrolled_at: date) -> None:
     today = date.today()
     if date_of_birth >= today:
