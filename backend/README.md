@@ -70,11 +70,39 @@ Mật khẩu chung: **`Neko@2026`**
 | POST | `/api/v1/students` | Manager | Tạo học viên, guardian/tài khoản trong một transaction |
 | GET | `/api/v1/students/<id>` | Đã đăng nhập, theo phạm vi | Chi tiết học viên |
 | PATCH | `/api/v1/students/<id>` | Manager | Cập nhật hành chính, không đổi level/tài khoản |
+| POST | `/api/v1/students/<id>/level-transfers` | Manager | Chuyển cấp và lưu lịch sử bất biến |
+| GET | `/api/v1/students/<id>/learning-history` | Theo phạm vi học viên | Lịch sử cấp độ, lớp, ghi danh và kết quả hiện có |
 | GET/POST | `/api/v1/guardians` | Manager | Danh sách và tạo guardian |
 | GET/PATCH | `/api/v1/guardians/<id>` | Manager | Xem và cập nhật guardian |
 | POST/DELETE | `/api/v1/users/<user_id>/students/<student_id>` | Manager | Thêm/gỡ liên kết tài khoản-học viên |
 | GET | `/api/v1/levels` | Đã đăng nhập | Danh mục 8 cấp độ cố định |
 | PATCH | `/api/v1/levels/<id>` | Manager | Sửa tên và khoảng tuổi của cấp độ |
+| GET/POST | `/api/v1/admission-leads` | Manager | Danh sách/tạo lead tuyển sinh |
+| PATCH | `/api/v1/admission-leads/<id>` | Manager | Cập nhật lead, điểm đầu vào và trạng thái |
+| POST | `/api/v1/admission-leads/<id>/convert` | Manager | Tạo/link học viên và chuyển lead sang ENROLLED |
+| GET/POST | `/api/v1/classes/<id>/schedules` | Theo phạm vi/Manager | Xem hoặc tạo lịch học định kỳ |
+| PATCH/DELETE | `/api/v1/schedules/<id>` | Manager | Sửa hoặc xóa lịch định kỳ |
+| POST | `/api/v1/classes/<id>/sessions/generate` | Manager | Sinh buổi học idempotent từ lịch định kỳ |
+| GET | `/api/v1/sessions` | Theo phạm vi | Danh sách buổi học và bộ lọc |
+| GET/PATCH | `/api/v1/sessions/<id>` | Theo phạm vi/Manager | Xem hoặc sửa buổi ngoại lệ |
+| POST | `/api/v1/classes/<id>/sessions` | Manager | Tạo buổi ngoại lệ hoặc học bù |
+| POST | `/api/v1/sessions/<id>/cancel` | Manager | Hủy buổi với lý do và audit |
+| POST | `/api/v1/sessions/<id>/complete` | Manager/GV phụ trách | Hoàn thành buổi sau khi đủ điểm danh |
+| GET/PUT | `/api/v1/sessions/<id>/attendances` | Theo phạm vi/Manager, GV, TG phụ trách | Xem roster hoặc ghi điểm danh hàng loạt |
+| PATCH | `/api/v1/attendances/<id>` | Manager/GV/TG phụ trách | Sửa điểm danh, bắt buộc lý do và lưu lịch sử |
+| GET | `/api/v1/attendances/<id>/history` | Theo phạm vi | Xem lịch sử thay đổi điểm danh |
+| GET | `/api/v1/attendances/report` | Theo phạm vi | Thống kê theo học sinh, lớp và thời gian từ dữ liệu gốc |
+| GET/POST | `/api/v1/assessments` | Theo phạm vi/Manager, GV phụ trách | Danh sách hoặc tạo đợt đánh giá |
+| GET/PATCH | `/api/v1/assessments/<id>` | Theo phạm vi/Manager, GV phụ trách | Xem hoặc sửa assessment DRAFT |
+| GET/PUT | `/api/v1/assessments/<id>/results` | Theo phạm vi/Manager, GV phụ trách | Roster kết quả hoặc nhập điểm trực tiếp |
+| POST | `/api/v1/assessments/<id>/imports/preview` | Manager/GV phụ trách | Preview file Excel trước khi import |
+| POST | `/api/v1/assessments/<id>/imports/confirm` | Manager/GV phụ trách | Xác nhận import Excel atomic |
+| PATCH | `/api/v1/results/<id>` | Manager/GV phụ trách | Sửa điểm có reason, history và audit |
+| POST | `/api/v1/assessments/<id>/publish` | Manager/GV phụ trách | Công bố kết quả |
+| POST | `/api/v1/assessments/<id>/unpublish` | Manager/GV phụ trách | Thu hồi công bố |
+| GET | `/api/v1/students/<id>/results` | Theo phạm vi học sinh | Chỉ xem các assessment PUBLISHED |
+| GET | `/api/v1/assessments/<id>/export` | Manager/GV phụ trách | Xuất kết quả assessment dạng Excel |
+| GET | `/api/v1/classes/<id>/results/export` | Manager/GV phụ trách | Xuất toàn bộ kết quả lớp dạng Excel |
 
 Chi tiết request/response xem trên Swagger `/docs`. Bấm **Authorize** rồi dán access token để gọi thử API cần đăng nhập.
 
@@ -114,7 +142,7 @@ curl http://127.0.0.1:8000/api/v1/users                                         
 - Database dùng Microsoft SQL Server qua URL `mssql+pyodbc` và ODBC Driver 18.
 - Trên macOS có thể cài driver bằng Homebrew theo hướng dẫn chính thức của Microsoft;
   trên Windows cài Microsoft ODBC Driver 18 trực tiếp.
-- Schema gốc do team Database quản lý. Migration đầu tiên (`migrations/versions/0001_initial_schema.py`) chạy file T-SQL `migrations/sql/0001_initial_schema.sql`, gồm 27 bảng. Các migration sau bổ sung blacklist token và phiên bản xác thực tài khoản.
+- Schema gốc do team Database quản lý. Migration đầu tiên (`migrations/versions/0001_initial_schema.py`) chạy file T-SQL `migrations/sql/0001_initial_schema.sql`, gồm 27 bảng. Các migration sau bổ sung blacklist token, phiên bản xác thực, lịch sử điểm danh, outbox học phí và phân hệ assessment/result/import.
 - **Không sửa** file SQL đó. Khi schema thay đổi, tạo migration mới:
   ```bash
   flask db migrate -m "mo ta thay doi"   # autogenerate từ model
@@ -219,7 +247,7 @@ Lỗi validate input (422) có thêm trường `errors` chỉ ra field nào sai:
 ## Test
 
 ```bash
-pytest          # 250 test: auth, tài khoản, nhân sự, học viên/guardian/level, phân quyền, migration, seed
+pytest          # toàn bộ test: auth, tài khoản, nhân sự, học viên, lịch học, điểm danh, migration, seed
 ```
 
 Test chạy trên `TEST_DATABASE_URL`. Mỗi lần chạy, DB test bị **xóa sạch** rồi migrate lại, nên tên DB bắt buộc kết thúc bằng `_test` (test sẽ dừng nếu không đúng).

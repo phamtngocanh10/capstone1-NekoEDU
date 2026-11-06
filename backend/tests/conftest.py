@@ -23,10 +23,13 @@ ROLES = {
 _AUTO = object()
 
 TABLES_CHILD_FIRST = (
-    "student_user_links", "revoked_tokens", "audit_logs", "policy_documents", "ai_alerts", "notifications",
+    "assessment_import_previews", "assessment_result_histories", "assessment_results", "assessments",
+    "student_level_transfers", "student_user_links", "revoked_tokens", "audit_logs", "policy_documents", "ai_alerts", "notifications",
     "finance_transactions", "finance_categories", "staff_payrolls", "receipts",
-    "payments", "tuition_invoices", "student_discounts", "discount_policies",
-    "student_requests", "attendances", "class_sessions", "class_enrollments",
+    "payments", "tuition_invoices", "tuition_adjustments", "tuition_cycle_sessions",
+    "tuition_cycles", "sibling_relationships", "tuition_business_policies",
+    "student_discounts", "discount_policies",
+    "student_requests", "tuition_recalculation_requests", "attendance_histories", "attendances", "class_sessions", "class_enrollments",
     "class_schedules", "classes", "rooms", "courses", "admission_leads",
     "students", "levels", "guardians", "staff_profiles", "users", "roles",
 )
@@ -63,6 +66,8 @@ def reset_db(app):
         for table in TABLES_CHILD_FIRST:
             db.session.execute(text(f"DELETE FROM {table}"))
         for table in TABLES_CHILD_FIRST:
+            if table == "assessment_import_previews":
+                continue
             db.session.execute(text(f"DBCC CHECKIDENT ('{table}', RESEED, 0)"))
         db.session.add_all(Role(code=code, name=name) for code, name in ROLES.items())
         db.session.commit()

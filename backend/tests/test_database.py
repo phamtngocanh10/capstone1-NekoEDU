@@ -19,7 +19,7 @@ def test_migration_can_downgrade_and_upgrade(app):
         assert inspect(db.engine).get_table_names() == ["alembic_version"]
 
         upgrade()
-        assert len(inspect(db.engine).get_table_names()) == 30  # thêm student_user_links
+        assert len(inspect(db.engine).get_table_names()) == 42
 
 
 def test_seed_command_loads_sample_data(app, client):
