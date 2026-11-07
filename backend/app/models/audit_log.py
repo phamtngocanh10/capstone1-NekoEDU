@@ -12,6 +12,7 @@ class AuditAction(StrEnum):
     UPDATE = "UPDATE"
     DELETE = "DELETE"
     LOGIN = "LOGIN"
+    LOGOUT = "LOGOUT"
     APPROVE = "APPROVE"
 
 

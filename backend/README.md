@@ -51,10 +51,58 @@ Mật khẩu chung: **`Neko@2026`**
 |---|---|---|---|
 | GET | `/api/v1/health` | Public | Kiểm tra server |
 | POST | `/api/v1/auth/login` | Public | Đăng nhập bằng username **hoặc** email |
-| GET | `/api/v1/auth/me` | Đã đăng nhập | Thông tin tài khoản hiện tại |
+| GET | `/api/v1/auth/me` | Đã đăng nhập | Tài khoản và hồ sơ nhân sự/học viên hiện tại |
+| POST | `/api/v1/auth/logout` | Đã đăng nhập | Thu hồi access token hiện tại |
+| PATCH | `/api/v1/auth/password` | Đã đăng nhập | Đổi mật khẩu (yêu cầu mật khẩu hiện tại) |
 | GET | `/api/v1/users` | Manager | Danh sách tài khoản: `page`, `page_size` (≤100), `role`, `status`, `q` |
+| POST | `/api/v1/users` | Manager | Tạo tài khoản |
 | GET | `/api/v1/users/<id>` | Manager | Chi tiết tài khoản |
-| GET | `/api/v1/staff` | Staff (Manager, GV, TG) | Danh bạ nhân sự: `position`, `status` |
+| PATCH | `/api/v1/users/<id>` | Manager | Cập nhật tài khoản và role |
+| PATCH | `/api/v1/users/<id>/status` | Manager | Khóa, mở khóa hoặc ngừng hoạt động |
+| POST | `/api/v1/users/<id>/reset-password` | Manager | Đặt lại mật khẩu tài khoản khác |
+| GET | `/api/v1/staff` | Staff (Manager, GV, TG) | Danh bạ: `position`, `status`; chỉ Manager thấy đơn giá |
+| POST | `/api/v1/staff` | Manager | Tạo hồ sơ nhân sự cho tài khoản staff |
+| GET | `/api/v1/staff/<id>` | Manager | Chi tiết hồ sơ nhân sự và đơn giá |
+| PATCH | `/api/v1/staff/<id>` | Manager | Cập nhật hồ sơ; đồng bộ position với role |
+| GET | `/api/v1/classes/<id>/staff` | Manager/GV/TG được giao | Xem phân công trong phạm vi lớp |
+| PATCH | `/api/v1/classes/<id>/staff` | Manager | Phân công giảng viên chính và trợ giảng |
+| GET | `/api/v1/students` | Đã đăng nhập, theo phạm vi | Danh sách, tìm kiếm và filter học viên |
+| POST | `/api/v1/students` | Manager | Tạo học viên, guardian/tài khoản trong một transaction |
+| GET | `/api/v1/students/<id>` | Đã đăng nhập, theo phạm vi | Chi tiết học viên |
+| PATCH | `/api/v1/students/<id>` | Manager | Cập nhật hành chính, không đổi level/tài khoản |
+| POST | `/api/v1/students/<id>/level-transfers` | Manager | Chuyển cấp và lưu lịch sử bất biến |
+| GET | `/api/v1/students/<id>/learning-history` | Theo phạm vi học viên | Lịch sử cấp độ, lớp, ghi danh và kết quả hiện có |
+| GET/POST | `/api/v1/guardians` | Manager | Danh sách và tạo guardian |
+| GET/PATCH | `/api/v1/guardians/<id>` | Manager | Xem và cập nhật guardian |
+| POST/DELETE | `/api/v1/users/<user_id>/students/<student_id>` | Manager | Thêm/gỡ liên kết tài khoản-học viên |
+| GET | `/api/v1/levels` | Đã đăng nhập | Danh mục 8 cấp độ cố định |
+| PATCH | `/api/v1/levels/<id>` | Manager | Sửa tên và khoảng tuổi của cấp độ |
+| GET/POST | `/api/v1/admission-leads` | Manager | Danh sách/tạo lead tuyển sinh |
+| PATCH | `/api/v1/admission-leads/<id>` | Manager | Cập nhật lead, điểm đầu vào và trạng thái |
+| POST | `/api/v1/admission-leads/<id>/convert` | Manager | Tạo/link học viên và chuyển lead sang ENROLLED |
+| GET/POST | `/api/v1/classes/<id>/schedules` | Theo phạm vi/Manager | Xem hoặc tạo lịch học định kỳ |
+| PATCH/DELETE | `/api/v1/schedules/<id>` | Manager | Sửa hoặc xóa lịch định kỳ |
+| POST | `/api/v1/classes/<id>/sessions/generate` | Manager | Sinh buổi học idempotent từ lịch định kỳ |
+| GET | `/api/v1/sessions` | Theo phạm vi | Danh sách buổi học và bộ lọc |
+| GET/PATCH | `/api/v1/sessions/<id>` | Theo phạm vi/Manager | Xem hoặc sửa buổi ngoại lệ |
+| POST | `/api/v1/classes/<id>/sessions` | Manager | Tạo buổi ngoại lệ hoặc học bù |
+| POST | `/api/v1/sessions/<id>/cancel` | Manager | Hủy buổi với lý do và audit |
+| POST | `/api/v1/sessions/<id>/complete` | Manager/GV phụ trách | Hoàn thành buổi sau khi đủ điểm danh |
+| GET/PUT | `/api/v1/sessions/<id>/attendances` | Theo phạm vi/Manager, GV, TG phụ trách | Xem roster hoặc ghi điểm danh hàng loạt |
+| PATCH | `/api/v1/attendances/<id>` | Manager/GV/TG phụ trách | Sửa điểm danh, bắt buộc lý do và lưu lịch sử |
+| GET | `/api/v1/attendances/<id>/history` | Theo phạm vi | Xem lịch sử thay đổi điểm danh |
+| GET | `/api/v1/attendances/report` | Theo phạm vi | Thống kê theo học sinh, lớp và thời gian từ dữ liệu gốc |
+| GET/POST | `/api/v1/assessments` | Theo phạm vi/Manager, GV phụ trách | Danh sách hoặc tạo đợt đánh giá |
+| GET/PATCH | `/api/v1/assessments/<id>` | Theo phạm vi/Manager, GV phụ trách | Xem hoặc sửa assessment DRAFT |
+| GET/PUT | `/api/v1/assessments/<id>/results` | Theo phạm vi/Manager, GV phụ trách | Roster kết quả hoặc nhập điểm trực tiếp |
+| POST | `/api/v1/assessments/<id>/imports/preview` | Manager/GV phụ trách | Preview file Excel trước khi import |
+| POST | `/api/v1/assessments/<id>/imports/confirm` | Manager/GV phụ trách | Xác nhận import Excel atomic |
+| PATCH | `/api/v1/results/<id>` | Manager/GV phụ trách | Sửa điểm có reason, history và audit |
+| POST | `/api/v1/assessments/<id>/publish` | Manager/GV phụ trách | Công bố kết quả |
+| POST | `/api/v1/assessments/<id>/unpublish` | Manager/GV phụ trách | Thu hồi công bố |
+| GET | `/api/v1/students/<id>/results` | Theo phạm vi học sinh | Chỉ xem các assessment PUBLISHED |
+| GET | `/api/v1/assessments/<id>/export` | Manager/GV phụ trách | Xuất kết quả assessment dạng Excel |
+| GET | `/api/v1/classes/<id>/results/export` | Manager/GV phụ trách | Xuất toàn bộ kết quả lớp dạng Excel |
 
 Chi tiết request/response xem trên Swagger `/docs`. Bấm **Authorize** rồi dán access token để gọi thử API cần đăng nhập.
 
@@ -80,25 +128,28 @@ curl http://127.0.0.1:8000/api/v1/users                                         
 - **Token:**
   - JWT HS256, hạn mặc định 480 phút (`JWT_ACCESS_TOKEN_EXPIRES_MINUTES`). Gửi ở header `Authorization: Bearer <token>`.
   - Token thiếu, sai, bị sửa hay hết hạn đều trả **401**.
-  - Tài khoản bị xóa hoặc khóa **sau khi** đăng nhập thì token cũ không dùng được nữa (401).
+  - Logout ghi token vào blacklist trong SQL Server; token đó không thể sử dụng lại.
+  - Tài khoản bị xóa/khóa, được mở khóa hoặc đổi/reset mật khẩu thì token cũ không dùng được nữa (401).
 - **Phân quyền:**
   - Role luôn lấy từ **DB** ở mỗi request, không tin claim `role` trong token, nên đổi role là có hiệu lực ngay.
   - Không đủ quyền thì trả **403**.
   - Quyền được kiểm tra **trước** khi validate input: chưa đăng nhập hoặc không đủ quyền sẽ nhận 401/403 chứ không nhận 422.
+  - Service kiểm tra thêm phạm vi tài nguyên: staff chỉ truy cập lớp/buổi học khi được phân công ở cấp lớp hoặc buổi học.
+  - Tài khoản Student/Parent có thể liên kết nhiều học viên qua `student_user_links`; chỉ liên kết có `can_view=true` được cấp quyền đọc.
 
 ## Database & migration
 
 - Database dùng Microsoft SQL Server qua URL `mssql+pyodbc` và ODBC Driver 18.
 - Trên macOS có thể cài driver bằng Homebrew theo hướng dẫn chính thức của Microsoft;
   trên Windows cài Microsoft ODBC Driver 18 trực tiếp.
-- Schema gốc do team Database quản lý. Migration đầu tiên (`migrations/versions/0001_initial_schema.py`) chạy file T-SQL `migrations/sql/0001_initial_schema.sql`, gồm 27 bảng.
+- Schema gốc do team Database quản lý. Migration đầu tiên (`migrations/versions/0001_initial_schema.py`) chạy file T-SQL `migrations/sql/0001_initial_schema.sql`, gồm 27 bảng. Các migration sau bổ sung blacklist token, phiên bản xác thực, lịch sử điểm danh, outbox học phí và phân hệ assessment/result/import.
 - **Không sửa** file SQL đó. Khi schema thay đổi, tạo migration mới:
   ```bash
   flask db migrate -m "mo ta thay doi"   # autogenerate từ model
   flask db revision -m "mo ta"          # hoặc migration viết tay (op.execute SQL)
   flask db upgrade
   ```
-- Model (`app/models/`) mới chỉ khai báo các bảng đang dùng (`roles`, `users`, `staff_profiles`, `audit_logs`). Kiểu dữ liệu và tên constraint phải khớp schema. Kiểm tra bằng `flask db check`; test `test_models_match_database_schema` cũng kiểm tra việc này.
+- Model (`app/models/`) khai báo các bảng đang dùng (`roles`, `users`, `staff_profiles`, `audit_logs`, `revoked_tokens`). Kiểu dữ liệu và tên constraint phải khớp schema. Kiểm tra bằng `flask db check`; test `test_models_match_database_schema` cũng kiểm tra việc này.
 - Autogenerate **bỏ qua** các bảng chưa có model và bỏ qua comment cột (xem `migrations/env.py`), nên không sinh nhầm lệnh `DROP TABLE`.
 - Dữ liệu mẫu: `seeds/03_seed.sql`, nạp bằng `flask seed` (`--yes` để bỏ qua bước xác nhận). Lệnh này không chạy trên production.
 
@@ -120,8 +171,8 @@ backend/
 │   ├── middlewares/
 │   │   └── auth.py                  # auth_required(*roles) + xử lý lỗi JWT
 │   ├── controllers/                 # auth_, user_, staff_, health_controller.py
-│   ├── services/                    # auth_, user_, staff_, health_service.py
-│   ├── models/                      # Role, User, StaffProfile, AuditLog
+│   ├── services/                    # nghiệp vụ + authorization_service kiểm tra quyền tài nguyên
+│   ├── models/                      # Role, User, StaffProfile, AuditLog, RevokedToken
 │   ├── schemas/                     # marshmallow: auth_, user_, staff_, common_schema.py
 │   └── common/
 │       ├── errors.py                # AppError, NotFoundError, ... + handler trả JSON
@@ -196,7 +247,7 @@ Lỗi validate input (422) có thêm trường `errors` chỉ ra field nào sai:
 ## Test
 
 ```bash
-pytest          # 87 test: login, token, phân quyền, users, staff, migration, seed
+pytest          # toàn bộ test: auth, tài khoản, nhân sự, học viên, lịch học, điểm danh, migration, seed
 ```
 
 Test chạy trên `TEST_DATABASE_URL`. Mỗi lần chạy, DB test bị **xóa sạch** rồi migrate lại, nên tên DB bắt buộc kết thúc bằng `_test` (test sẽ dừng nếu không đúng).

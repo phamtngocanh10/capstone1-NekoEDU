@@ -15,3 +15,6 @@ pyodbc==5.3.0
 # Auth
 Flask-JWT-Extended==4.7.4
 bcrypt==5.0.0
+
+# Excel import/export
+openpyxl==3.1.5

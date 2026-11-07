@@ -17,12 +17,13 @@ from flask_jwt_extended import JWTManager, current_user, verify_jwt_in_request
 
 from app.common.errors import ForbiddenError, error_response
 from app.extensions import db
-from app.models import RoleCode, User
+from app.models import RevokedToken, RoleCode, User
 
 MSG_MISSING_TOKEN = "Bạn chưa đăng nhập hoặc thiếu access token"
 MSG_INVALID_TOKEN = "Access token không hợp lệ"
 MSG_EXPIRED_TOKEN = "Access token đã hết hạn, vui lòng đăng nhập lại"
 MSG_ACCOUNT_UNAVAILABLE = "Tài khoản không tồn tại hoặc đã bị khóa"
+MSG_REVOKED_TOKEN = "Access token đã bị thu hồi, vui lòng đăng nhập lại"
 MSG_FORBIDDEN = "Bạn không có quyền thực hiện chức năng này"
 
 
@@ -47,6 +48,10 @@ def auth_required(*roles: RoleCode):
 
 
 def register_jwt_callbacks(manager: JWTManager) -> None:
+    @manager.token_in_blocklist_loader
+    def token_is_revoked(_jwt_header, jwt_data) -> bool:
+        return db.session.query(RevokedToken.id).filter_by(jti=jwt_data.get("jti")).first() is not None
+
     @manager.user_identity_loader
     def user_identity(user: User) -> str:
         # Claim "sub" của JWT phải là chuỗi
@@ -60,7 +65,11 @@ def register_jwt_callbacks(manager: JWTManager) -> None:
             return None
         user = db.session.get(User, user_id)
         # Tài khoản bị xóa/khóa sau khi đăng nhập thì token cũ không dùng được nữa
-        if user is None or not user.is_active:
+        if (
+            user is None
+            or not user.is_active
+            or jwt_data.get("ver") != user.auth_version
+        ):
             return None
         return user
 
@@ -79,3 +88,7 @@ def register_jwt_callbacks(manager: JWTManager) -> None:
     @manager.user_lookup_error_loader
     def user_unavailable(_jwt_header, _jwt_data):
         return error_response(401, MSG_ACCOUNT_UNAVAILABLE)
+
+    @manager.revoked_token_loader
+    def revoked_token(_jwt_header, _jwt_data):
+        return error_response(401, MSG_REVOKED_TOKEN)
