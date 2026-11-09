@@ -3,6 +3,7 @@ flask-smorest==0.47.0
 marshmallow==4.3.1
 flask-cors==6.0.5
 python-dotenv==1.2.3
+tzdata==2026.6
 gunicorn==26.2.0
 
 # Database & migration (Microsoft SQL Server)

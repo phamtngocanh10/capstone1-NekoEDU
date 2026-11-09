@@ -1,0 +1,40 @@
+# Dependencies and generated output
+**/node_modules/
+**/.venv/
+**/venv/
+**/__pycache__/
+*.py[cod]
+**/.pytest_cache/
+**/dist/
+**/.coverage
+**/htmlcov/
+
+# Local secrets; only sanitized examples are versioned
+**/.env
+**/.env.*
+!**/.env.example
+
+# Private snapshots and SQL Server data/backups
+**/.local-backups/
+*.bak
+*.mdf
+*.ldf
+*.ndf
+
+# Machine-specific files
+.DS_Store
+Thumbs.db
+
+# Transient tooling output and editor leftovers
+**/.vite/
+**/.vite-temp/
+**/.cache/
+**/coverage/
+**/test-results/
+**/playwright-report/
+*.log
+*.tmp
+*.temp
+*.orig
+*.rej
+*~

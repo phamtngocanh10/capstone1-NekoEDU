@@ -1,0 +1,173 @@
+import { useEffect, useState } from "react";
+import { BookOpen, Calendar } from "lucide-react";
+import {
+  Btn,
+  CheckRow,
+  Dialog,
+  RadioChips,
+  SelectField,
+  TextField,
+} from "../../../../common/ui";
+
+function toDisplayDateTime(value) {
+  const [date, time] = value.split("T");
+  return `${date.split("-").reverse().join("/")} · ${time}`;
+}
+
+function openDateTimePicker(event) {
+  const input = event.currentTarget.querySelector("input");
+  if (!input || input.disabled) return;
+  input.focus();
+  // Mở lịch khi bấm vào ô, thay vì chỉ bấm biểu tượng lịch.
+  try {
+    input.showPicker?.();
+  } catch {
+    input.focus();
+  }
+}
+
+export const toShort = (s) =>
+  s.replace(/^(\d{2}\/\d{2})\/\d{4} · (\d{2}:\d{2})$/, "$1 $2");
+
+export default function ThietLapModal({ course, courses = [], onSubmit, onClose }) {
+  const [id, setId] = useState(course.id);
+  const [term, setTerm] = useState(course.term === 'Chưa thiết lập' ? `Giữa kỳ T${new Date().getMonth() + 1}/${new Date().getFullYear()}` : course.term);
+  const [open, setOpen] = useState(
+    course.opensAt || '',
+  );
+  const [close, setClose] = useState(
+    course.closesAt || '',
+  );
+  const [mode, setMode] = useState(
+    course.release.startsWith("Hẹn") ? "timed" : "confirm",
+  );
+  const [release, setRelease] = useState(() => {
+    if (course.publishesAt) return course.publishesAt;
+    const initialRelease = course.release.startsWith("Hẹn giờ ")
+      ? course.release.slice("Hẹn giờ ".length)
+      : "";
+    return initialRelease;
+  });
+  const [remind, setRemind] = useState(course.remind ?? true);
+  const [autoLock, setAutoLock] = useState(course.autoLock ?? true);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    const selected = courses.find(item => item.id === id);
+    if (!selected || selected.id === course.id) return;
+    setTerm(selected.term === 'Chưa thiết lập' ? `Giữa kỳ T${new Date().getMonth() + 1}/${new Date().getFullYear()}` : selected.term);
+    setOpen(selected.opensAt || ''); setClose(selected.closesAt || ''); setRelease(selected.publishesAt || '');
+    setMode(selected.release.startsWith('Hẹn') ? 'timed' : 'confirm');
+    setRemind(selected.remind ?? true); setAutoLock(selected.autoLock ?? true);
+  }, [id]);
+
+  async function saveSettings(event) {
+    event.preventDefault();
+    setSaving(true);
+    const openText = toDisplayDateTime(open);
+    const closeText = toDisplayDateTime(close);
+    try { await onSubmit({
+      id,
+      opensAt: open,
+      closesAt: close,
+      publishesAt: release,
+      term,
+      mode, remind, autoLock,
+      window: `${toShort(openText)} → ${toShort(closeText)}`,
+      deadline: closeText.slice(0, 5),
+      release: mode === "confirm"
+        ? "Ngay khi GV xác nhận"
+        : `Hẹn giờ ${toShort(toDisplayDateTime(release))}`,
+      note: `Đóng lúc ${closeText.replace(" · ", " ")}`,
+    }); } finally { setSaving(false); }
+  }
+
+  return (
+    <Dialog
+      title="Thiết lập thời gian điểm số"
+      subtitle="Đặt thời gian giảng viên nhập điểm và thời điểm công bố cho học viên"
+      onClose={onClose}
+    >
+      <form onSubmit={saveSettings}>
+        <div className="u-form">
+          <SelectField
+            label="Khóa học"
+            icon={BookOpen}
+            options={courses.map((c) => ({ value: c.id, label: c.name }))}
+            value={id}
+            onChange={(e) => setId(e.target.value)}
+          />
+          <SelectField
+            label="Kỳ điểm"
+            icon={Calendar}
+            options={[...new Set([term, `Giữa kỳ T${new Date().getMonth() + 1}/${new Date().getFullYear()}`, `Cuối kỳ T${new Date().getMonth() + 1}/${new Date().getFullYear()}`])]}
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+          />
+          <div className="u-field u-field--full">
+            <span
+              className="u-field__label"
+              style={{ color: "var(--primary-2)" }}
+            >
+              Thời gian giảng viên nhập điểm
+            </span>
+          </div>
+          <TextField
+            label="Mở lúc"
+            type="datetime-local"
+            value={open}
+            onControlClick={openDateTimePicker}
+            onChange={(e) => setOpen(e.target.value)}
+          />
+          <TextField
+            label="Đóng lúc"
+            type="datetime-local"
+            min={open}
+            value={close}
+            onControlClick={openDateTimePicker}
+            onChange={(e) => setClose(e.target.value)}
+          />
+          <RadioChips
+            label="Công bố điểm cho học viên"
+            full
+            cols={2}
+            value={mode}
+            onChange={setMode}
+            options={[
+              { value: "confirm", label: "Ngay khi giảng viên xác nhận" },
+              { value: "timed", label: "Hẹn giờ" },
+            ]}
+          />
+          <TextField
+            label="Giờ công bố (khi chọn Hẹn giờ)"
+            type="datetime-local"
+            full
+            disabled={mode !== "timed"}
+            value={release}
+            onControlClick={openDateTimePicker}
+            onChange={(e) => setRelease(e.target.value)}
+          />
+          <div className="u-field u-field--full" style={{ gap: 10 }}>
+            <CheckRow checked={remind} onChange={setRemind}>
+              Nhắc giảng viên trước hạn 1 ngày
+            </CheckRow>
+            <CheckRow checked={autoLock} onChange={setAutoLock}>
+              Tự động khóa nhập điểm khi hết hạn
+            </CheckRow>
+          </div>
+        </div>
+        <div className="u-modal__foot">
+          <Btn variant="ghost" size="sq" onClick={onClose}>
+            Hủy
+          </Btn>
+          <Btn
+            size="sq"
+            type="submit"
+            disabled={saving || !open || !close || open >= close || (mode === "timed" && !release)}
+          >
+            Lưu thiết lập
+          </Btn>
+        </div>
+      </form>
+    </Dialog>
+  );
+}

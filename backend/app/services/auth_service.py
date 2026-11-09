@@ -33,6 +33,8 @@ def authenticate(identifier: str, password: str, ip_address: str | None) -> dict
     if not verify_password(password, user.password_hash):
         raise UnauthorizedError(MSG_INVALID_CREDENTIALS)
 
+    unlock_if_expired(user)
+
     # Chỉ báo trạng thái khóa khi đã nhập đúng mật khẩu
     if user.status == UserStatus.LOCKED:
         raise ForbiddenError(MSG_ACCOUNT_LOCKED)
@@ -128,6 +130,8 @@ def get_current_user(user: User) -> dict:
         "email": user.email,
         "full_name": user.full_name,
         "phone": user.phone,
+        "address": user.address,
+        "avatar_url": "/api/v1/auth/avatar" if user.avatar_storage_key else None,
         "status": user.status,
         "role": user.role,
         "last_login_at": user.last_login_at,
@@ -135,6 +139,26 @@ def get_current_user(user: User) -> dict:
         "profile": related_profile,
         "profiles": related_profiles,
     }
+
+
+def unlock_if_expired(user: User) -> bool:
+    if user.status != UserStatus.LOCKED or user.deleted_at or not user.locked_until:
+        return False
+    if user.locked_until > datetime.now(timezone.utc):
+        return False
+    user.status = UserStatus.ACTIVE
+    user.lock_reason = None
+    user.locked_at = None
+    user.locked_until = None
+    user.locked_by = None
+    user.auth_version += 1
+    user.updated_at = datetime.now(timezone.utc)
+    db.session.add(AuditLog(actor_user_id=None, action=AuditAction.UPDATE,
+                           entity_name='users', entity_id=user.id,
+                           old_data={'status': 'LOCKED'},
+                           new_data={'status': 'ACTIVE', 'reason': 'LOCK_EXPIRED'}))
+    db.session.commit()
+    return True
 
 
 def _student_profile(row) -> dict:

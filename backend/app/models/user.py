@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
 
 from sqlalchemy import (
     BigInteger,
+    Date,
     DateTime,
     ForeignKey,
     Identity,
@@ -45,6 +46,10 @@ class User(db.Model):
     password_hash: Mapped[str] = mapped_column(Unicode(100))
     full_name: Mapped[str] = mapped_column(Unicode(100))
     phone: Mapped[str | None] = mapped_column(Unicode(10))
+    date_of_birth: Mapped[date | None] = mapped_column(Date)
+    gender: Mapped[str | None] = mapped_column(Unicode(10))
+    address: Mapped[str | None] = mapped_column(Unicode(255))
+    avatar_storage_key: Mapped[str | None] = mapped_column(Unicode(500))
     role_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("roles.id", name="fk_users_role_id")
     )
@@ -58,6 +63,16 @@ class User(db.Model):
         DateTime(timezone=True), server_default=text("SYSDATETIMEOFFSET()")
     )
     auth_version: Mapped[int] = mapped_column(Integer, server_default=text("0"))
+    lock_reason: Mapped[str | None] = mapped_column(Unicode(500))
+    locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    locked_by: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("users.id", name="fk_users_locked_by")
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deleted_by: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("users.id", name="fk_users_deleted_by")
+    )
 
     # Luôn cần role để phân quyền nên load kèm ngay khi lấy user
     role: Mapped[Role] = relationship(lazy="joined")

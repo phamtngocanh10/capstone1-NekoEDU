@@ -39,6 +39,62 @@ def run_sql_script(sql: str) -> None:
 
 
 def register_commands(app: Flask) -> None:
+    @app.cli.command('process-pending-work')
+    @click.option('--watch', is_flag=True, help='Theo dõi liên tục khi chạy demo')
+    @click.option('--interval', type=click.IntRange(min=5, max=3600), default=30, show_default=True)
+    def process_pending_work(watch, interval):
+        """Phát hành điểm, nhắc hạn và gửi thông báo nội bộ đã đến giờ."""
+        import json
+        import time
+        from app.services.lecturer_service import process_deadlines
+        from app.services.operations_service import process_due_announcements
+        while True:
+            try:
+                grades = process_deadlines()
+                announcements = process_due_announcements()
+                if not watch or any(grades.values()) or any(announcements.values()):
+                    click.echo(json.dumps({'grades': grades, 'announcements': announcements}, ensure_ascii=False))
+                if announcements['failed'] and not watch:
+                    raise click.ClickException('Có thông báo đến hạn chưa xử lý được; xem các mã ở trên.')
+            except Exception as error:
+                db.session.rollback()
+                if not watch:
+                    raise
+                current_app.logger.error('Pending-work processing failed: %s', type(error).__name__)
+            finally:
+                db.session.remove()
+            if not watch:
+                return
+            time.sleep(interval)
+
+    @app.cli.command('process-pending-work')
+    @click.option('--watch', is_flag=True, help='Theo dõi liên tục khi chạy demo')
+    @click.option('--interval', type=click.IntRange(min=5, max=3600), default=30, show_default=True)
+    def process_pending_work(watch, interval):
+        """Phát hành điểm, nhắc hạn và gửi thông báo nội bộ đã đến giờ."""
+        import json
+        import time
+        from app.services.lecturer_service import process_deadlines
+        from app.services.operations_service import process_due_announcements
+        while True:
+            try:
+                grades = process_deadlines()
+                announcements = process_due_announcements()
+                if not watch or any(grades.values()) or any(announcements.values()):
+                    click.echo(json.dumps({'grades': grades, 'announcements': announcements}, ensure_ascii=False))
+                if announcements['failed'] and not watch:
+                    raise click.ClickException('Có thông báo đến hạn chưa xử lý được; xem các mã ở trên.')
+            except Exception as error:
+                db.session.rollback()
+                if not watch:
+                    raise
+                current_app.logger.error('Pending-work processing failed: %s', type(error).__name__)
+            finally:
+                db.session.remove()
+            if not watch:
+                return
+            time.sleep(interval)
+
     @app.cli.command("seed")
     @click.option(
         "--file",
@@ -67,9 +123,10 @@ def register_commands(app: Flask) -> None:
                 "__PW__", hash_password("Neko@2026")
             )
             run_sql_script(sql)
-        except pyodbc.Error as exc:
+        except pyodbc.Error:
             raise click.ClickException(
-                f"Không thể nạp seed. Hãy kiểm tra database và chạy `flask db upgrade` trước. ({exc})"
-            ) from exc
+                "Không thể nạp seed. Hãy kiểm tra database và chạy `flask db upgrade` trước. "
+                "Chi tiết kết nối và dữ liệu SQL đã được ẩn."
+            ) from None
 
         click.echo(f"Đã nạp dữ liệu mẫu vào database '{db_name}'.")

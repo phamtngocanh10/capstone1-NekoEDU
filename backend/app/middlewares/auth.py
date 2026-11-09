@@ -13,7 +13,9 @@ Dùng ở router, đặt ngay dưới @router.route để kiểm tra quyền TR�
 
 from functools import wraps
 
+from flask import request
 from flask_jwt_extended import JWTManager, current_user, verify_jwt_in_request
+from sqlalchemy import text
 
 from app.common.errors import ForbiddenError, error_response
 from app.extensions import db
@@ -40,11 +42,65 @@ def auth_required(*roles: RoleCode):
             # Lấy role hiện tại trong DB, không tin role trong token (role có thể đã bị đổi)
             if roles and current_user.role.code not in roles:
                 raise ForbiddenError(MSG_FORBIDDEN)
+            _require_configured_permission()
             return fn(*args, **kwargs)
 
         return wrapper
 
     return decorator
+
+
+def _require_configured_permission():
+    """Explicit DENY can narrow, never expand, the existing role and row scopes."""
+    path = request.path.removeprefix('/api/v1/').strip('/')
+    if path.startswith(('auth/', 'health', 'notifications')):
+        return
+    # Managers must retain a way to repair their permission configuration.
+    if path.startswith('manager/roles') and current_user.role.code == RoleCode.MANAGER:
+        return
+    parts = path.split('/')
+    section = parts[1] if parts[0] in ('manager', 'lecturer') and len(parts) > 1 else parts[0]
+    resources = {
+        'students': 'STUDENTS', 'guardians': 'STUDENTS',
+        'courses': 'COURSES_CLASSES', 'classes': 'COURSES_CLASSES', 'catalog': 'COURSES_CLASSES',
+        'schedules': 'SCHEDULES', 'schedule': 'SCHEDULES', 'sessions': 'SCHEDULES',
+        'attendance': 'ATTENDANCE', 'attendances': 'ATTENDANCE',
+        'grades': 'GRADES', 'grade-periods': 'GRADES', 'assessments': 'GRADES', 'results': 'GRADES',
+        'assistants': 'ASSISTANTS', 'assistant-candidates': 'ASSISTANTS',
+        'assistant-requests': 'ASSISTANTS', 'assistant-submissions': 'ASSISTANTS',
+        'documents': 'LEARNING_MATERIALS', 'comments': 'STUDENT_COMMENTS',
+        'student-comments': 'STUDENT_COMMENTS',
+    }
+    resource = resources.get(section, 'CENTER_ADMINISTRATION')
+    # Nested class operations belong to their actual module, not the roster's module.
+    for segment, code in (('attendance', 'ATTENDANCE'), ('grades', 'GRADES'), ('grading-window', 'GRADES'),
+                          ('documents', 'LEARNING_MATERIALS'), ('comments', 'STUDENT_COMMENTS'),
+                          ('assistants', 'ASSISTANTS')):
+        if segment in parts:
+            resource = code
+    if section == 'grades' or (
+        section in ('assistants', 'classes')
+        and any(segment in parts for segment in ('submission', 'submissions', 'requests', 'review'))
+    ):
+        resource = 'GRADES'
+    action = {'GET': 'VIEW', 'HEAD': 'VIEW', 'POST': 'CREATE',
+              'PUT': 'UPDATE', 'PATCH': 'UPDATE', 'DELETE': 'DELETE'}.get(request.method)
+    if action is None:
+        return
+    if request.method == 'POST' and parts[-1] in {
+        'publish', 'unpublish', 'cancel', 'send', 'read-all', 'review', 'approve',
+        'confirm', 'close', 'lock', 'unlock', 'assign', 'stop', 'share', 'download',
+    }:
+        action = 'UPDATE'
+    if request.method == 'POST' and section == 'grades' and parts[-1] in {'import', 'remind', 'reopen'}:
+        action = 'UPDATE'
+    effect = db.session.execute(text('''
+        SELECT rp.effect FROM role_permissions rp
+        JOIN permission_resources pr ON pr.id=rp.resource_id
+        WHERE rp.role_id=:role AND pr.code=:resource AND rp.action_code=:action
+    '''), {'role': current_user.role_id, 'resource': resource, 'action': action}).scalar_one_or_none()
+    if effect == 'DENY':
+        raise ForbiddenError(MSG_FORBIDDEN)
 
 
 def register_jwt_callbacks(manager: JWTManager) -> None:
@@ -64,6 +120,9 @@ def register_jwt_callbacks(manager: JWTManager) -> None:
         except (KeyError, TypeError, ValueError):
             return None
         user = db.session.get(User, user_id)
+        if user is not None and user.status == 'LOCKED':
+            from app.services.auth_service import unlock_if_expired
+            unlock_if_expired(user)
         # Tài khoản bị xóa/khóa sau khi đăng nhập thì token cũ không dùng được nữa
         if (
             user is None

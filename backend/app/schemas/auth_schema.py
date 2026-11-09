@@ -33,6 +33,8 @@ class LoginResponseSchema(Schema):
 
 
 class CurrentUserSchema(UserSchema):
+    address = fields.String(allow_none=True)
+    avatar_url = fields.String(allow_none=True)
     profile = fields.Raw(
         allow_none=True,
         metadata={"description": "Hồ sơ nhân sự hoặc học viên liên kết với tài khoản"},
@@ -55,6 +57,44 @@ class ChangePasswordSchema(Schema):
         load_only=True,
         validate=[validate.Length(min=8), validate_password_bytes],
     )
+    confirm_password = fields.String(required=True, load_only=True)
+
+    @validates_schema
+    def passwords_match(self, data, **kwargs):
+        if data.get("new_password") != data.get("confirm_password"):
+            raise ValidationError("Mật khẩu xác nhận không khớp", field_name="confirm_password")
+
+
+class ProfileUpdateSchema(Schema):
+    full_name = fields.String(required=True, validate=validate.Length(min=1, max=100))
+    email = fields.Email(required=True, validate=validate.Length(max=150))
+    phone = fields.String(allow_none=True, validate=validate.Regexp(r"^0[0-9]{9}$"))
+    address = fields.String(allow_none=True, validate=validate.Length(max=255))
+
+    @pre_load
+    def normalize(self, data, **kwargs):
+        if not isinstance(data, dict):
+            return data
+        normalized = dict(data)
+        for key in ("full_name", "email", "phone", "address"):
+            if isinstance(normalized.get(key), str):
+                normalized[key] = normalized[key].strip()
+        if isinstance(normalized.get("email"), str):
+            normalized["email"] = normalized["email"].lower()
+        for key in ("phone", "address"):
+            if normalized.get(key) == "":
+                normalized[key] = None
+        return normalized
+
+
+class RecoveryRequestSchema(Schema):
+    email = fields.Email(required=True, validate=validate.Length(max=150))
+
+
+class PasswordResetSchema(Schema):
+    token = fields.String(required=True, validate=validate.Length(min=1, max=2000))
+    new_password = fields.String(required=True, load_only=True,
+                                 validate=[validate.Length(min=8), validate_password_bytes])
     confirm_password = fields.String(required=True, load_only=True)
 
     @validates_schema

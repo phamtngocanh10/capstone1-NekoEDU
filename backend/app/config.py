@@ -31,6 +31,14 @@ class Config:
     # Cost của bcrypt, giữ bằng cost của dữ liệu seed (10) để thời gian kiểm tra mật khẩu đồng đều
     BCRYPT_ROUNDS = 10
 
+    MAIL_SERVER = os.getenv("MAIL_SERVER")
+    MAIL_PORT = int(os.getenv("MAIL_PORT", "587"))
+    MAIL_USERNAME = os.getenv("MAIL_USERNAME")
+    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
+    MAIL_FROM = os.getenv("MAIL_FROM")
+    MAIL_USE_TLS = os.getenv("MAIL_USE_TLS", "true").lower() == "true"
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "http://127.0.0.1:5173").rstrip("/")
+
     # OpenAPI / Swagger UI (flask-smorest)
     API_TITLE = "NEKO Edu API"
     API_VERSION = "v1"

@@ -85,7 +85,8 @@ def list_students(
         text(
             f"""
             SELECT s.id, s.student_code, s.full_name, s.english_name,
-                   s.date_of_birth, s.enrolled_at, s.status,
+                   s.date_of_birth, s.gender, s.address, s.contact_email,
+                   s.enrolled_at, s.status,
                    l.id AS level_id, l.code AS level_code, l.name AS level_name,
                    g.id AS guardian_id, g.full_name AS guardian_name,
                    g.phone AS guardian_phone, g.email AS guardian_email,
@@ -116,6 +117,9 @@ def _student_summary(row) -> dict:
         "full_name": row["full_name"],
         "english_name": row["english_name"],
         "date_of_birth": row["date_of_birth"],
+        "gender": row["gender"],
+        "address": row["address"],
+        "contact_email": row["contact_email"],
         "enrolled_at": row["enrolled_at"],
         "status": row["status"],
         **({"note": row["note"], "user_id": row["user_id"]} if "note" in row else {}),
@@ -138,14 +142,14 @@ def _escape_like(value: str) -> str:
     return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
-def create_student(payload: dict, *, actor: User, ip_address: str | None) -> dict:
+def create_student(payload: dict, *, actor: User, ip_address: str | None, commit: bool = True) -> dict:
     _validate_student_dates(payload["date_of_birth"], payload["enrolled_at"])
     _ensure_student_code_unique(payload["student_code"])
     _ensure_level_exists(payload["current_level_id"])
 
     try:
         guardian_id = (
-            _create_guardian(payload["guardian"], actor, ip_address)
+            _get_or_create_guardian(payload["guardian"], actor, ip_address)
             if "guardian" in payload
             else _ensure_guardian_exists(payload["guardian_id"])
         )
@@ -160,11 +164,13 @@ def create_student(payload: dict, *, actor: User, ip_address: str | None) -> dic
                 """
                 INSERT INTO students
                     (student_code, full_name, english_name, date_of_birth,
-                     guardian_id, user_id, current_level_id, enrolled_at, status, note)
+                     gender, address, contact_email, guardian_id, user_id,
+                     current_level_id, enrolled_at, status, note)
                 OUTPUT INSERTED.id
                 VALUES
                     (:student_code, :full_name, :english_name, :date_of_birth,
-                     :guardian_id, NULL, :level_id, :enrolled_at, :status, :note)
+                     :gender, :address, :contact_email, :guardian_id, NULL,
+                     :level_id, :enrolled_at, :status, :note)
                 """
             ),
             {
@@ -172,6 +178,9 @@ def create_student(payload: dict, *, actor: User, ip_address: str | None) -> dic
                 "full_name": payload["full_name"],
                 "english_name": payload.get("english_name"),
                 "date_of_birth": payload["date_of_birth"],
+                "gender": payload.get("gender"),
+                "address": payload.get("address"),
+                "contact_email": payload.get("contact_email"),
                 "guardian_id": guardian_id,
                 "level_id": payload["current_level_id"],
                 "enrolled_at": payload["enrolled_at"],
@@ -203,10 +212,16 @@ def create_student(payload: dict, *, actor: User, ip_address: str | None) -> dic
                 ip_address=ip_address,
             )
         )
-        db.session.commit()
+        if commit:
+            db.session.commit()
+        else:
+            db.session.flush()
     except IntegrityError as exc:
         db.session.rollback()
         raise ConflictError("Mã học viên, guardian hoặc tài khoản liên kết đã được sử dụng") from exc
+    except Exception:
+        db.session.rollback()
+        raise
     return get_student_detail_row(student_id)
 
 
@@ -215,7 +230,8 @@ def get_student_detail_row(student_id: int) -> dict:
         text(
             """
             SELECT s.id, s.student_code, s.full_name, s.english_name,
-                   s.date_of_birth, s.enrolled_at, s.status, s.note,
+                   s.date_of_birth, s.gender, s.address, s.contact_email,
+                   s.enrolled_at, s.status, s.note,
                    COALESCE(
                        (SELECT TOP 1 sul.user_id FROM student_user_links sul
                         WHERE sul.student_id = s.id ORDER BY sul.id),
@@ -254,7 +270,7 @@ def update_student(
         text(
             """
             SELECT id, student_code, full_name, english_name, date_of_birth,
-                   guardian_id, enrolled_at, status, note
+                   gender, address, contact_email, guardian_id, enrolled_at, status, note
             FROM students WITH (UPDLOCK, ROWLOCK)
             WHERE id = :student_id
             """
@@ -636,13 +652,31 @@ def _ensure_guardian_exists(guardian_id: int) -> int:
     return guardian_id
 
 
-def _create_guardian(payload: dict, actor: User, ip_address: str | None) -> int:
-    if db.session.execute(
-        text("SELECT 1 FROM guardians WHERE phone = :phone"), {"phone": payload["phone"]}
-    ).scalar_one_or_none():
-        raise ConflictError(
-            "Số điện thoại guardian đã tồn tại; hãy dùng guardian_id để tránh liên kết nhầm"
-        )
+def _get_or_create_guardian(
+    payload: dict, actor: User, ip_address: str | None
+) -> int:
+    existing = db.session.execute(
+        text(
+            """
+            SELECT id, full_name, relationship
+            FROM guardians WITH (UPDLOCK, HOLDLOCK)
+            WHERE phone = :phone
+            """
+        ),
+        {"phone": payload["phone"]},
+    ).mappings().one_or_none()
+    if existing is not None:
+        if (
+            existing["full_name"].strip().casefold()
+            != payload["full_name"].strip().casefold()
+            or existing["relationship"] != payload["relationship"]
+        ):
+            raise ConflictError(
+                "Số điện thoại đã thuộc về phụ huynh có thông tin khác; "
+                "hãy kiểm tra tên và quan hệ trước khi liên kết"
+            )
+        return existing["id"]
+
     guardian_id = db.session.execute(
         text(
             """
