@@ -405,6 +405,12 @@ def test_f64_issue_creates_one_invoice_and_notification(
     assert body["invoice"]["status"] == "UNPAID"
     assert body["notifications_created"] == 1
     with app.app_context():
+        item = db.session.execute(
+            text("SELECT item_type, amount FROM tuition_invoice_items WHERE invoice_id = :id"),
+            {"id": body["invoice"]["id"]},
+        ).one()
+        assert item.item_type == "TUITION"
+        assert item.amount == body["invoice"]["base_amount"]
         assert db.session.execute(
             text("SELECT COUNT(*) FROM notifications WHERE related_invoice_id = :id"),
             {"id": body["invoice"]["id"]},
@@ -422,6 +428,10 @@ def test_f64_issue_is_idempotent_without_duplicate_invoice_or_notification(
     assert first.get_json()["invoice"]["id"] == second.get_json()["invoice"]["id"]
     assert second.get_json()["notifications_created"] == 0
     with app.app_context():
+        assert db.session.execute(
+            text("SELECT COUNT(*) FROM tuition_invoice_items WHERE invoice_id = :id"),
+            {"id": first.get_json()["invoice"]["id"]},
+        ).scalar_one() == 1
         assert db.session.execute(
             text("SELECT COUNT(*) FROM tuition_invoices WHERE tuition_cycle_id = :id"),
             {"id": cycle_id},

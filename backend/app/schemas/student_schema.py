@@ -4,6 +4,7 @@ from app.common.security import BCRYPT_MAX_BYTES
 from app.schemas.common_schema import PaginationSchema
 
 STUDENT_STATUSES = ("ACTIVE", "ON_HOLD", "DROPPED", "GRADUATED")
+STUDENT_GENDERS = ("MALE", "FEMALE", "OTHER")
 STUDENT_LINK_RELATIONSHIPS = ("SELF", "FATHER", "MOTHER", "GUARDIAN")
 
 
@@ -27,6 +28,9 @@ class StudentSchema(Schema):
     full_name = fields.String()
     english_name = fields.String(allow_none=True)
     date_of_birth = fields.Date()
+    gender = fields.String(allow_none=True)
+    address = fields.String(allow_none=True)
+    contact_email = fields.String(allow_none=True)
     enrolled_at = fields.Date()
     status = fields.String()
     note = fields.String(allow_none=True)
@@ -101,6 +105,9 @@ class StudentCreateSchema(Schema):
     full_name = fields.String(required=True, validate=validate.Length(min=1, max=100))
     english_name = fields.String(allow_none=True, validate=validate.Length(max=50))
     date_of_birth = fields.Date(required=True)
+    gender = fields.String(allow_none=True, validate=validate.OneOf(STUDENT_GENDERS))
+    address = fields.String(allow_none=True, validate=validate.Length(max=255))
+    contact_email = fields.Email(allow_none=True, validate=validate.Length(max=150))
     current_level_id = fields.Integer(required=True, strict=True, validate=validate.Range(min=1))
     enrolled_at = fields.Date(required=True)
     guardian_id = fields.Integer(strict=True, validate=validate.Range(min=1))
@@ -117,7 +124,8 @@ class StudentCreateSchema(Schema):
     @pre_load
     def normalize(self, data, **kwargs):
         return _normalize_strings(
-            data, ("student_code", "full_name", "english_name", "note")
+            data,
+            ("student_code", "full_name", "english_name", "address", "contact_email", "note"),
         )
 
     @validates_schema
@@ -165,6 +173,9 @@ class StudentUpdateSchema(Schema):
     full_name = fields.String(validate=validate.Length(min=1, max=100))
     english_name = fields.String(allow_none=True, validate=validate.Length(max=50))
     date_of_birth = fields.Date()
+    gender = fields.String(allow_none=True, validate=validate.OneOf(STUDENT_GENDERS))
+    address = fields.String(allow_none=True, validate=validate.Length(max=255))
+    contact_email = fields.Email(allow_none=True, validate=validate.Length(max=150))
     enrolled_at = fields.Date()
     guardian_id = fields.Integer(strict=True, validate=validate.Range(min=1))
     status = fields.String(validate=validate.OneOf(STUDENT_STATUSES))
@@ -173,7 +184,8 @@ class StudentUpdateSchema(Schema):
     @pre_load
     def normalize(self, data, **kwargs):
         return _normalize_strings(
-            data, ("student_code", "full_name", "english_name", "note")
+            data,
+            ("student_code", "full_name", "english_name", "address", "contact_email", "note"),
         )
 
     @validates_schema
@@ -272,7 +284,7 @@ def _normalize_strings(data, field_names):
     for field_name in field_names:
         if isinstance(normalized.get(field_name), str):
             normalized[field_name] = normalized[field_name].strip()
-            if field_name in {"email"}:
+            if field_name in {"email", "contact_email"}:
                 normalized[field_name] = normalized[field_name].lower()
             if normalized[field_name] == "" and field_name not in {"full_name", "student_code", "username"}:
                 normalized[field_name] = None

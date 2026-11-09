@@ -3,6 +3,34 @@ SET NOCOUNT ON;
 SET XACT_ABORT ON;
 BEGIN TRY
     BEGIN TRANSACTION;
+    -- Các bảng nghiệp vụ mới: xóa bảng con trước, giữ nguyên danh mục do migration nạp.
+    DELETE FROM announcement_replies;
+    DELETE FROM announcement_attachments;
+    DELETE FROM announcement_students;
+    DELETE FROM announcement_classes;
+    DELETE FROM notification_deliveries;
+    DELETE FROM notifications;
+    DELETE FROM announcements;
+    DELETE FROM announcement_templates;
+    DELETE FROM finance_transaction_attachments;
+    DELETE FROM tuition_invoice_items;
+    DELETE FROM ai_alerts;
+    DELETE FROM ai_forecast_points;
+    DELETE FROM ai_forecast_runs;
+    DELETE FROM student_comments;
+    DELETE FROM teaching_document_events;
+    DELETE FROM teaching_document_classes;
+    DELETE FROM teaching_documents;
+    DELETE FROM stored_files;
+    DELETE FROM assistant_grade_submission_rows;
+    DELETE FROM assistant_grade_submissions;
+    DELETE FROM assistant_grading_grants;
+    DELETE FROM assistant_grading_requests;
+    DELETE FROM class_assistant_assignments;
+    DELETE FROM assessment_skill_results;
+    DELETE FROM assessment_workflows;
+    DELETE FROM assessment_grading_periods;
+    DELETE FROM role_permissions;
     DELETE FROM assessment_import_previews;
     DELETE FROM assessment_result_histories;
     DELETE FROM assessment_results;
@@ -12,8 +40,6 @@ BEGIN TRY
     DELETE FROM revoked_tokens;
     DELETE FROM audit_logs;
     DELETE FROM policy_documents;
-    DELETE FROM ai_alerts;
-    DELETE FROM notifications;
     DELETE FROM finance_transactions;
     DELETE FROM finance_categories;
     DELETE FROM staff_payrolls;
@@ -44,6 +70,25 @@ BEGIN TRY
     DELETE FROM staff_profiles;
     DELETE FROM users;
     DELETE FROM roles;
+    -- Chỉ các bảng có IDENTITY; các bảng khóa ghép, GUID và workflow không reseed.
+    -- course_groups và permission_resources là danh mục tĩnh, không xóa/reseed.
+    DBCC CHECKIDENT (N'announcement_replies', RESEED, 0) WITH NO_INFOMSGS;
+    DBCC CHECKIDENT (N'notification_deliveries', RESEED, 0) WITH NO_INFOMSGS;
+    DBCC CHECKIDENT (N'announcements', RESEED, 0) WITH NO_INFOMSGS;
+    DBCC CHECKIDENT (N'announcement_templates', RESEED, 0) WITH NO_INFOMSGS;
+    DBCC CHECKIDENT (N'tuition_invoice_items', RESEED, 0) WITH NO_INFOMSGS;
+    DBCC CHECKIDENT (N'ai_forecast_points', RESEED, 0) WITH NO_INFOMSGS;
+    DBCC CHECKIDENT (N'ai_forecast_runs', RESEED, 0) WITH NO_INFOMSGS;
+    DBCC CHECKIDENT (N'student_comments', RESEED, 0) WITH NO_INFOMSGS;
+    DBCC CHECKIDENT (N'teaching_document_events', RESEED, 0) WITH NO_INFOMSGS;
+    DBCC CHECKIDENT (N'teaching_documents', RESEED, 0) WITH NO_INFOMSGS;
+    DBCC CHECKIDENT (N'stored_files', RESEED, 0) WITH NO_INFOMSGS;
+    DBCC CHECKIDENT (N'assistant_grade_submissions', RESEED, 0) WITH NO_INFOMSGS;
+    DBCC CHECKIDENT (N'assistant_grading_grants', RESEED, 0) WITH NO_INFOMSGS;
+    DBCC CHECKIDENT (N'assistant_grading_requests', RESEED, 0) WITH NO_INFOMSGS;
+    DBCC CHECKIDENT (N'class_assistant_assignments', RESEED, 0) WITH NO_INFOMSGS;
+    DBCC CHECKIDENT (N'assessment_grading_periods', RESEED, 0) WITH NO_INFOMSGS;
+    DBCC CHECKIDENT (N'role_permissions', RESEED, 0) WITH NO_INFOMSGS;
     DBCC CHECKIDENT (N'assessment_result_histories', RESEED, 0) WITH NO_INFOMSGS;
     DBCC CHECKIDENT (N'assessment_results', RESEED, 0) WITH NO_INFOMSGS;
     DBCC CHECKIDENT (N'assessments', RESEED, 0) WITH NO_INFOMSGS;
@@ -8234,7 +8279,21 @@ BEGIN TRY
     SET IDENTITY_INSERT audit_logs OFF;
     -- Mật khẩu dev chung cho mọi tài khoản: Neko@2026 (BCrypt $2a$, tương thích Spring BCryptPasswordEncoder)
 
-    -- Đồng bộ identity sau khi insert id tường minh;
+    -- Liên kết khóa học seed với danh mục mới mà vẫn giữ tám cấp độ gốc.
+    UPDATE c SET group_id = g.id,
+        curriculum_level = CASE WHEN l.code = N'KINDY' THEN 1
+            ELSE TRY_CONVERT(SMALLINT, RIGHT(l.code, 1)) END
+    FROM courses c
+    JOIN levels l ON l.id = c.level_id
+    JOIN course_groups g ON g.code = CASE
+        WHEN l.code = N'KINDY' THEN N'KINDY'
+        WHEN l.code LIKE N'KID[_]%' THEN N'KID'
+        WHEN l.code LIKE N'TEEN[_]%' THEN N'TEEN' END;
+
+    -- Chi tiết học phí là giá gốc trước giảm giá, khớp header hóa đơn seed.
+    INSERT INTO tuition_invoice_items (invoice_id, line_no, item_type, description, amount)
+    SELECT id, 1, N'TUITION', N'Học phí', base_amount FROM tuition_invoices;
+
     COMMIT TRANSACTION;
 END TRY
 BEGIN CATCH

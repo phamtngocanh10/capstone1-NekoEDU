@@ -1,0 +1,73 @@
+{
+  "description": "Canonical SQL and migration sources remain under backend to preserve its internal structure; this index executes nothing.",
+  "sources": [
+    {
+      "path": "backend/migrations/alembic.ini",
+      "sha256": "aba9e18a46baa85be7991f0095c3fdfa5d2ba8afbc20f29a5bcca92b2ce2cb4c"
+    },
+    {
+      "path": "backend/migrations/env.py",
+      "sha256": "37e1c21d0ce17e2491fa33b71ee0cc5869876257f8c731afbc327e63793ebc23"
+    },
+    {
+      "path": "backend/migrations/script.py.mako",
+      "sha256": "89ef11643db6e9bdbe323390882399939e0c0ac603a26e9d705f3951a8ba4963"
+    },
+    {
+      "path": "backend/migrations/sql/0001_initial_schema.sql",
+      "sha256": "693a9e6848f17d2eeb19e75e445e612a63374c98b3e54ccb5e1b5081fd5592f7"
+    },
+    {
+      "path": "backend/migrations/versions/0001_initial_schema.py",
+      "sha256": "fc152cbfe13a0ded294459eb84f5c7b3f30e571b0b488c81330d11abccf88a93"
+    },
+    {
+      "path": "backend/migrations/versions/0002_add_revoked_tokens.py",
+      "sha256": "6912a2c1ee122e97f0ab76cb10f4c84243ac2e4e328650b5ce8ca1898c353bac"
+    },
+    {
+      "path": "backend/migrations/versions/0003_add_user_auth_version.py",
+      "sha256": "f2e0338ea2757715c043c3f85b7aa616bf40cc0f0a64d6472169af7d458ec152"
+    },
+    {
+      "path": "backend/migrations/versions/0004_add_student_user_links.py",
+      "sha256": "d9d98efa3a77f3c6b8f2c133def0e59423c2098582e8eb198b18ee1cbb282c19"
+    },
+    {
+      "path": "backend/migrations/versions/0005_normalize_level_codes.py",
+      "sha256": "512d881e443c5a5b16ed61ac8419f65a5617735741dd68675f0de600e89feba1"
+    },
+    {
+      "path": "backend/migrations/versions/0006_add_student_level_transfers.py",
+      "sha256": "3665d525477724cc97a242e26e6b268bfc67706d9579170075b8c112facfd068"
+    },
+    {
+      "path": "backend/migrations/versions/0007_normalize_attendance_and_add_history.py",
+      "sha256": "9b251f5137be5912d300a7cbf04c14cb3cc44537e54187a3f469ccad6c8246d4"
+    },
+    {
+      "path": "backend/migrations/versions/0008_add_assessments_and_results.py",
+      "sha256": "145289246d7a57f4852092be0c7c33ce7d2c71fee83686d07a5a9c6f545871d9"
+    },
+    {
+      "path": "backend/migrations/versions/0009_add_tuition_cycles_and_adjustments.py",
+      "sha256": "78dc51f3f1c1cbf44011aaed4f20d2276018372ba8309bcb5912ff8dcfe9c522"
+    },
+    {
+      "path": "backend/migrations/versions/0010_add_manager_profiles_and_permissions.py",
+      "sha256": "49f142c1d42269c834230f4c3bd63b48b7fd646e30c2255b726b16f5774d286f"
+    },
+    {
+      "path": "backend/migrations/versions/0011_add_lecturer_workflows.py",
+      "sha256": "b9a627711817b8926f902c32c2472e648f9afc7127a2174da428016a8955320b"
+    },
+    {
+      "path": "backend/migrations/versions/0012_add_center_operations.py",
+      "sha256": "2d5f0c7a1566adeefc923f5628d2073f390df41eea3f7924fb7ff688684c3c7f"
+    },
+    {
+      "path": "backend/seeds/03_seed.sql",
+      "sha256": "cf53e54be446883f5950986255a057839684252ff3aaa687b5e83c3e5b5165f2"
+    }
+  ]
+}

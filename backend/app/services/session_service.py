@@ -390,6 +390,7 @@ def cancel_session(
     *,
     actor: User,
     ip_address: str | None,
+    commit: bool = True,
 ) -> dict:
     current = db.session.execute(
         text(
@@ -434,7 +435,8 @@ def cancel_session(
             ip_address=ip_address,
         )
     )
-    db.session.commit()
+    if commit:
+        db.session.commit()
     return get_session_row(session_id)
 
 

@@ -589,6 +589,11 @@ def test_create_student_can_create_guardian_in_same_transaction(
         "relationship": "MOTHER",
         "address": "Đà Nẵng",
     }
+    payload.update(
+        gender="FEMALE",
+        address="12 Lê Duẩn",
+        contact_email="STUDENT@EXAMPLE.COM",
+    )
 
     res = client.post(
         STUDENTS_URL, headers=auth_header(users["manager"]), json=payload
@@ -597,11 +602,80 @@ def test_create_student_can_create_guardian_in_same_transaction(
     assert res.status_code == 201
     assert res.get_json()["guardian"]["full_name"] == "Phạm Thị Phụ Huynh"
     assert res.get_json()["guardian"]["email"] == "parent@example.com"
+    assert res.get_json()["gender"] == "FEMALE"
+    assert res.get_json()["address"] == "12 Lê Duẩn"
+    assert res.get_json()["contact_email"] == "student@example.com"
+    readback = client.get(
+        STUDENTS_URL,
+        headers=auth_header(users["manager"]),
+        query_string={"q": "HS010", "page": 1, "page_size": 100},
+    )
+    assert readback.status_code == 200
+    assert [item["student_code"] for item in readback.get_json()["items"]] == ["HS010"]
+    assert readback.get_json()["items"][0]["guardian"]["phone"] == "0912345678"
     with app.app_context():
         actions = db.session.scalars(
             select(AuditLog.entity_name).order_by(AuditLog.id)
         ).all()
         assert actions == ["guardians", "students"]
+
+
+def test_create_student_reuses_matching_guardian_by_phone(
+    app, client, users, auth_header, student_scope
+):
+    payload = student_payload(student_scope)
+    payload.pop("guardian_id")
+    payload["guardian"] = {
+        "full_name": "Nguyễn Phụ Huynh",
+        "phone": "0901234567",
+        "relationship": "FATHER",
+    }
+
+    res = client.post(
+        STUDENTS_URL, headers=auth_header(users["manager"]), json=payload
+    )
+
+    assert res.status_code == 201
+    assert res.get_json()["guardian"]["id"] == student_scope["guardians"][0]
+    with app.app_context():
+        count = db.session.execute(
+            text("SELECT COUNT(*) FROM guardians WHERE phone = '0901234567'")
+        ).scalar_one()
+        assert count == 1
+
+
+def test_create_student_rolls_back_new_guardian_if_later_step_fails(
+    app, client, users, auth_header, student_scope, create_user
+):
+    existing_username = "existingparent"
+    create_user(existing_username, RoleCode.STUDENT_PARENT, email=None)
+    payload = student_payload(student_scope)
+    payload.pop("guardian_id")
+    payload["guardian"] = {
+        "full_name": "Phụ huynh cần rollback",
+        "phone": "0912345678",
+        "relationship": "MOTHER",
+    }
+    payload["account"] = {
+        "username": existing_username,
+        "email": None,
+        "password": "Parent@2026",
+        "full_name": "Phụ huynh",
+        "phone": "0912345678",
+    }
+
+    res = client.post(
+        STUDENTS_URL, headers=auth_header(users["manager"]), json=payload
+    )
+
+    assert res.status_code == 409
+    with app.app_context():
+        assert db.session.execute(
+            text("SELECT COUNT(*) FROM guardians WHERE phone = '0912345678'")
+        ).scalar_one() == 0
+        assert db.session.execute(
+            text("SELECT COUNT(*) FROM students WHERE student_code = 'HS010'")
+        ).scalar_one() == 0
 
 
 def test_create_student_links_existing_student_parent_account(
@@ -656,7 +730,7 @@ def test_create_student_can_create_login_account_atomically(
 
 
 def test_create_student_rejects_duplicate_code_and_guardian_phone(
-    client, users, auth_header, student_scope
+    app, client, users, auth_header, student_scope
 ):
     headers = auth_header(users["manager"])
     duplicate_code = client.post(
@@ -675,7 +749,14 @@ def test_create_student_rejects_duplicate_code_and_guardian_phone(
 
     assert duplicate_code.status_code == 409
     assert duplicate_phone.status_code == 409
-    assert "guardian_id" in duplicate_phone.get_json()["message"]
+    assert "thông tin khác" in duplicate_phone.get_json()["message"]
+    with app.app_context():
+        assert db.session.execute(
+            text("SELECT COUNT(*) FROM guardians WHERE phone = '0901234567'")
+        ).scalar_one() == 1
+        assert db.session.execute(
+            text("SELECT COUNT(*) FROM students WHERE student_code = 'HS010'")
+        ).scalar_one() == 0
 
 
 def test_create_student_rejects_wrong_role_and_allows_one_parent_multiple_students(
@@ -820,6 +901,9 @@ def test_manager_updates_student_administrative_fields_with_audit(
             "full_name": "  Nguyễn Minh Anh Mới  ",
             "english_name": None,
             "date_of_birth": "2018-02-02",
+            "gender": "FEMALE",
+            "address": "  Địa chỉ mới  ",
+            "contact_email": "NEW@EXAMPLE.COM",
             "enrolled_at": "2025-02-01",
             "guardian_id": student_scope["guardians"][1],
             "status": "ON_HOLD",
@@ -832,6 +916,9 @@ def test_manager_updates_student_administrative_fields_with_audit(
     assert body["student_code"] == "HS099"
     assert body["full_name"] == "Nguyễn Minh Anh Mới"
     assert body["english_name"] is None
+    assert body["gender"] == "FEMALE"
+    assert body["address"] == "Địa chỉ mới"
+    assert body["contact_email"] == "new@example.com"
     assert body["guardian"]["id"] == student_scope["guardians"][1]
     assert body["status"] == "ON_HOLD"
     assert body["note"] == "Tạm nghỉ"

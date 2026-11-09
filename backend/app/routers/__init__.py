@@ -22,6 +22,9 @@ from app.routers.student_router import router as student_router
 from app.routers.tuition_router import router as tuition_router
 from app.routers.tuition_policy_router import router as tuition_policy_router
 from app.routers.user_router import router as user_router
+from app.routers.operations_router import router as operations_router
+from app.routers.lecturer_router import lecturer_bp, workflow_bp
+from app.routers.management_router import router as management_router
 
 API_PREFIX = "/api/v1"
 
@@ -43,3 +46,7 @@ def register_routers(api: Api) -> None:
     api.register_blueprint(attendance_router, url_prefix=f"{API_PREFIX}/attendances")
     api.register_blueprint(tuition_router, url_prefix=f"{API_PREFIX}/tuition-cycles")
     api.register_blueprint(tuition_policy_router, url_prefix=f"{API_PREFIX}/tuition-policies")
+    api.register_blueprint(operations_router, url_prefix=API_PREFIX)
+    api.register_blueprint(lecturer_bp, url_prefix=f"{API_PREFIX}/lecturer")
+    api.register_blueprint(workflow_bp, url_prefix=f"{API_PREFIX}/manager")
+    api.register_blueprint(management_router, url_prefix=f"{API_PREFIX}/manager")

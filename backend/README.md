@@ -139,10 +139,11 @@ curl http://127.0.0.1:8000/api/v1/users                                         
 
 ## Database & migration
 
+- Đối chiếu đầy đủ các màn Manager/Giảng viên, schema đích **0012**, quy trình backup và kiểm thử riêng: [DATABASE.md](DATABASE.md). Dùng `scripts/prepare_database.py` để kiểm tra/nâng cấp database hiện có; không chạy lại seed để nâng cấp.
 - Database dùng Microsoft SQL Server qua URL `mssql+pyodbc` và ODBC Driver 18.
 - Trên macOS có thể cài driver bằng Homebrew theo hướng dẫn chính thức của Microsoft;
   trên Windows cài Microsoft ODBC Driver 18 trực tiếp.
-- Schema gốc do team Database quản lý. Migration đầu tiên (`migrations/versions/0001_initial_schema.py`) chạy file T-SQL `migrations/sql/0001_initial_schema.sql`, gồm 27 bảng. Các migration sau bổ sung blacklist token, phiên bản xác thực, lịch sử điểm danh, outbox học phí và phân hệ assessment/result/import.
+- Schema gốc do team Database quản lý. Migration đầu tiên (`migrations/versions/0001_initial_schema.py`) chạy file T-SQL `migrations/sql/0001_initial_schema.sql`, gồm 27 bảng. Schema đến 0012 có 69 bảng (gồm bảng Alembic): bổ sung xác thực, điểm danh, học phí, hồ sơ, quyền, điểm 4 kỹ năng, trợ giảng, tài liệu, nhận xét, thông báo và dự báo.
 - **Không sửa** file SQL đó. Khi schema thay đổi, tạo migration mới:
   ```bash
   flask db migrate -m "mo ta thay doi"   # autogenerate từ model

@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "NekoEDU: Demo BE + FE",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend/scripts/start_demo.mjs",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "autoAttachChildProcesses": false,
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    }
+  ]
+}

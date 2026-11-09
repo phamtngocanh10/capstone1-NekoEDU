@@ -452,6 +452,16 @@ def issue_cycle(cycle_id: int, *, actor: User, ip_address: str | None) -> dict:
                 "final_amount": cycle["final_amount"],
             },
         ).scalar_one()
+        # Header/cycle amounts remain authoritative. Store the matching base
+        # tuition line in the same transaction for the itemized FE invoice.
+        db.session.execute(
+            text(
+                """INSERT INTO tuition_invoice_items
+                    (invoice_id, line_no, item_type, description, amount)
+                   VALUES (:invoice_id, 1, 'TUITION', N'Học phí chu kỳ 8 buổi', :amount)"""
+            ),
+            {"invoice_id": invoice_id, "amount": cycle["base_amount"]},
+        )
         db.session.execute(
             text(
                 """UPDATE tuition_cycles SET status = 'ISSUED',

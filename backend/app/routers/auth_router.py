@@ -1,4 +1,7 @@
 from flask_smorest import Blueprint
+from flask import request, send_file
+from flask_jwt_extended import current_user
+from io import BytesIO
 
 from app.controllers import auth_controller
 from app.middlewares.auth import auth_required
@@ -7,8 +10,13 @@ from app.schemas.auth_schema import (
     CurrentUserSchema,
     LoginResponseSchema,
     LoginSchema,
+    ProfileUpdateSchema,
+    RecoveryRequestSchema,
+    PasswordResetSchema,
 )
 from app.schemas.common_schema import ErrorSchema
+from app.services import profile_service
+from app.services import recovery_service
 
 router = Blueprint("auth", __name__, description="Xác thực: đăng nhập, thông tin tài khoản hiện tại")
 
@@ -53,3 +61,46 @@ def logout():
 def change_password(payload):
     """Đổi mật khẩu của tài khoản hiện tại"""
     return auth_controller.change_password(payload)
+
+
+@router.route("/profile", methods=["PUT"])
+@auth_required()
+@router.arguments(ProfileUpdateSchema)
+@router.response(200, CurrentUserSchema)
+def update_profile(payload):
+    return profile_service.update_profile(current_user, payload, ip_address=request.remote_addr)
+
+
+@router.route("/avatar", methods=["POST"])
+@auth_required()
+@router.response(200, CurrentUserSchema)
+def upload_avatar():
+    return profile_service.save_avatar(current_user, request.files.get("file"),
+                                       ip_address=request.remote_addr)
+
+
+@router.route("/avatar", methods=["GET"])
+@auth_required()
+def avatar():
+    stored = profile_service.get_avatar(current_user)
+    response = send_file(BytesIO(bytes(stored["content"])), mimetype=stored["mime_type"])
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@router.route('/recovery', methods=['POST'])
+@router.doc(security=[])
+@router.arguments(RecoveryRequestSchema)
+@router.response(202)
+def recovery(payload):
+    return recovery_service.request_reset(payload['email'])
+
+
+@router.route('/reset-password', methods=['POST'])
+@router.doc(security=[])
+@router.arguments(PasswordResetSchema)
+@router.response(204)
+def reset_password(payload):
+    recovery_service.reset_password(payload, ip_address=request.remote_addr)
+    return '', 204

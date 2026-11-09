@@ -1,0 +1,117 @@
+{
+  "folders": [
+    {
+      "name": "Backend",
+      "path": "backend"
+    },
+    {
+      "name": "Frontend",
+      "path": "frontend"
+    },
+    {
+      "name": "AI",
+      "path": "ai"
+    },
+    {
+      "name": "Database",
+      "path": "database"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.venv": true,
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/__pycache__": true,
+      "**/.pytest_cache": true
+    },
+    "search.exclude": {
+      "**/.venv": true,
+      "**/node_modules": true,
+      "**/dist": true
+    },
+    "git.openRepositoryInParentFolders": "always"
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "BE: Chay demo",
+        "type": "process",
+        "command": "${workspaceFolder:Backend}/.venv/Scripts/python.exe",
+        "args": [
+          "-m",
+          "flask",
+          "--app",
+          "run",
+          "run",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "8000",
+          "--no-reload",
+          "--no-debugger"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:Backend}"
+        },
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": {
+          "panel": "dedicated",
+          "reveal": "always"
+        }
+      },
+      {
+        "label": "FE: Chay demo",
+        "type": "shell",
+        "command": "npm.cmd",
+        "args": [
+          "run",
+          "dev"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:Frontend}"
+        },
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": {
+          "panel": "dedicated",
+          "reveal": "always"
+        }
+      },
+      {
+        "label": "NekoEDU: Chay demo BE + FE",
+        "type": "process",
+        "command": "node",
+        "args": [
+          "${workspaceFolder:Backend}/scripts/start_demo.mjs"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:Backend}"
+        },
+        "problemMatcher": [],
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated"
+        }
+      },
+      {
+        "label": "BE: Kiem tra ket noi va du lieu demo",
+        "type": "process",
+        "command": "${workspaceFolder:Backend}/.venv/Scripts/python.exe",
+        "args": [
+          "scripts/check_demo.py"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:Backend}"
+        },
+        "problemMatcher": []
+      }
+    ]
+  }
+}
