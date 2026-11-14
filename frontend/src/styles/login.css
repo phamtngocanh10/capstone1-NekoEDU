@@ -183,6 +183,7 @@
 }
 .login__error { padding: 10px 12px; border-radius: 8px; color: var(--danger-text); background: var(--danger-bg); font-size: 12px; line-height: 1.6; }
 .login__form .btn:disabled { opacity: .65; cursor: wait; }
+.login__student-note { margin-top: 16px; text-align: center; color: var(--text-muted); font-size: 12px; line-height: 1.8; }
 
 @media (max-width: 900px) {
   .login {

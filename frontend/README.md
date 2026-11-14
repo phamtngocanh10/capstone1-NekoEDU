@@ -34,3 +34,19 @@ Khi cập nhật object hoặc array trong state, tạo giá trị mới bằng 
 Manager và Giảng viên dùng tài khoản SQL (`mg01`/`gv01`, mật khẩu mặc định `Neko@2026` nếu chưa đổi). Dữ liệu nghiệp vụ lấy qua `/api/v1/manager/*`, `/api/v1/lecturer/*` và các API nền hiện có; localStorage chỉ giữ phiên đăng nhập. Học viên/phụ huynh/tài khoản/xếp lớp được ghi cùng transaction. Học phí 8 buổi và hóa đơn thật dùng quy tắc BE hiện có; chưa có chính sách thì hồ sơ vẫn lưu và báo chờ, không tạo khoản thu giả. Email/push ngoài ứng dụng và dự báo AI cần dịch vụ thật; xem báo cáo Backend để biết phần đã kiểm thử.
 
 Backend mặc định `http://127.0.0.1:8000/api/v1`; có thể đặt `VITE_API_BASE_URL` (gồm `/api/v1`). Hướng dẫn đủ 11 menu Manager/8 menu Giảng viên ở `D:\capstone1-NekoEDU\backend\DEMO.md`; chạy cả hệ thống bằng `node D:\capstone1-NekoEDU\backend\scripts\start_demo.mjs`. Hướng dẫn API Giảng viên ở `src/components/Lecturer/huongdan.md`.
+
+## Giao diện Student / Parent
+
+Chạy `npm run dev` trong `frontend/`, mở `/login` và dùng **`ph01` / `Neko@2026`** (hoặc tên đăng nhập `hv01` cho cùng tài khoản mẫu). Nhập đúng mã xác nhận trên form. Phần StudentParent hoạt động hoàn toàn ở frontend, không gọi API và không cần SQL Server. Manager/Giảng viên vẫn dùng luồng đăng nhập hiện có.
+
+Giao diện theo 15 màn hình/trạng thái StudentParent trong `CAP (2).fig`, dùng chung token màu Manager ở `theme.css`: trang chủ, khóa học và đăng ký, chi tiết khóa, lịch tuần, thư viện tài liệu, chuyên cần và kết quả, chi tiết bài kiểm tra, học phí và hóa đơn, thanh toán mẫu, thông báo và tệp đính kèm, phản hồi, đánh giá. Hồ sơ phụ huynh có thể chỉnh sửa và lưu ảnh đại diện; biểu mẫu đổi mật khẩu chỉ minh họa, không đổi mật khẩu đăng nhập.
+
+Các trang nằm trong `src/components/StudentParent/components`; bố cục, context và dữ liệu mẫu nằm trong `StudentParent/layout`. Tên biến/hàm tự đặt dùng tiếng Việt viết liền không dấu, chữ thường, ví dụ `hocvien`, `layhoadon`, `luuhoso`. Component React viết hoa chữ đầu (`Chitietketqua`), hook giữ tiền tố chuẩn (`useHocvienphuhuynh`). Tên API thư viện, props và khóa dữ liệu đã lưu được giữ nguyên để tương thích. CSS khung trang là `src/styles/student-parent.css`; CSS từng nhóm chức năng nằm cạnh các trang tương ứng.
+
+Đọc logic từ `layout/NguCanhHocVien.jsx` (state và lưu thay đổi), rồi `layout/xulydulieu.js` (lọc theo học viên, kiểm tra điều kiện, xử lý đăng ký/thanh toán/phản hồi). `layout/luuTruMau.js` chỉ đọc/ghi localStorage. Trong `components`, `dinhdang.js` giữ hàm ngày, tiền và tìm kiếm; `xuattep.js` giữ phần tạo PDF, Word và lịch; `tienIch.js` xuất lại các hàm này để các trang dùng chung. Mỗi lần cập nhật luôn dựa trên bản dữ liệu mới nhất và chỉ đổi giao diện sau khi lưu thành công.
+
+Dữ liệu mẫu tạo theo tuần hiện tại, có phụ huynh Nguyễn Thị Mai và hai học viên Nguyễn Minh Anh / Nguyễn Minh Khang. Bộ chọn học viên đồng bộ các lớp, lịch, điểm, tài liệu, hóa đơn, phản hồi và đánh giá theo từng hồ sơ. Khóa localStorage `neko-student-parent-data-v1` giữ thay đổi; `neko-student-parent-session-v1` giữ phiên đăng nhập mẫu. Không lưu mật khẩu trong bộ nhớ trình duyệt và không ghi đè `access_token` hoặc `neko-auth-user`.
+
+Đăng ký khóa học tạo trạng thái **Chờ xác nhận**. Thanh toán chỉ cập nhật hóa đơn minh họa, không chuyển tiền hay kết nối ngân hàng/ví. PDF, DOCX và audio tải xuống là tài liệu mẫu. Google Calendar dùng tệp lịch `.ics` có thể tải và nhập thủ công, không giả lập kết nối tài khoản Google. Nút **Khôi phục dữ liệu mẫu** có xác nhận và đặt lại mọi thay đổi mẫu theo tuần hiện tại.
+
+Kiểm tra bản dựng: `npm run build`. Không có thay đổi backend, migration hay seed cho StudentParent.

@@ -13,6 +13,7 @@ import {
 import Button from "../common/Button";
 import Input from "../common/Input";
 import { login } from '../api/auth';
+import { dangnhaphocvien, lataikhoanhocvien, taikhoanmau } from '../components/StudentParent/layout/duLieuDangNhap';
 
 const ROLES = [
   { icon: ShieldCheck, name: "Manager", desc: "Toàn quyền vận hành" },
@@ -29,6 +30,11 @@ function getRememberedUsername() {
   } catch {
     return "";
   }
+}
+
+function luutendangnhap(tenDangNhap, ghiNho) {
+  if (ghiNho) localStorage.setItem('neko-login-username', tenDangNhap);
+  else localStorage.removeItem('neko-login-username');
 }
 
 export default function LoginPage() {
@@ -57,6 +63,12 @@ export default function LoginPage() {
     setDangGui(true);
     try {
       const username = taiKhoan.trim();
+      if (lataikhoanhocvien(username)) {
+        dangnhaphocvien(username, matKhau);
+        luutendangnhap(username, ghiNho);
+        navigate('/student/trangchu', { replace: true });
+        return;
+      }
       const ketQua = await login({
         username,
         password: matKhau,
@@ -74,11 +86,7 @@ export default function LoginPage() {
       } else {
         localStorage.removeItem("access_token");
       }
-      if (ghiNho) {
-        localStorage.setItem("neko-login-username", username);
-      } else {
-        localStorage.removeItem("neko-login-username");
-      }
+      luutendangnhap(username, ghiNho);
       navigate(isLecturer ? "/lecturer/tongquan" : "/tongquan", { replace: true });
     } catch (err) {
       setLoi(err.response?.data?.message ?? err.message ?? "Không thể đăng nhập. Vui lòng thử lại.");
@@ -190,6 +198,9 @@ export default function LoginPage() {
           <Button type="submit" block disabled={dangGui}>
             {dangGui ? "Đang đăng nhập…" : "Đăng nhập"}
           </Button>
+          <p className="login__student-note">Tài khoản mẫu Học viên / Phụ huynh:<br />
+            <strong>{taikhoanmau.taiKhoan}</strong> / <strong>{taikhoanmau.matKhau}</strong>
+          </p>
         </form>
       </section>
     </div>

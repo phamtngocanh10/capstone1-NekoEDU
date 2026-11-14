@@ -1,0 +1,615 @@
+.sp-fees-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px;
+  border-left: 4px solid var(--primary);
+}
+.sp-fees-hero h2 {
+  margin: 7px 0 10px;
+  font-size: 18px;
+}
+.sp-fees-hero p {
+  margin: 14px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.sp-fees-amount {
+  font-size: clamp(26px, 3vw, 34px);
+  color: var(--primary);
+  letter-spacing: -0.6px;
+}
+.sp-fees-hero--paid {
+  justify-content: flex-start;
+  color: var(--primary);
+}
+.sp-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.sp-invoice-history .u-table-wrap {
+  margin-top: 15px;
+}
+.sp-invoice-title {
+  display: grid;
+  gap: 5px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+.sp-invoice-title:hover {
+  color: var(--primary);
+}
+.sp-invoice-title small {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.sp-invoice-history .u-table td {
+  white-space: nowrap;
+}
+.sp-invoice-history .u-table td:first-child {
+  min-width: 170px;
+  white-space: normal;
+}
+.sp-payment-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 17px;
+  background: var(--active-bg);
+  border-radius: 12px;
+}
+.sp-payment-total > div {
+  display: grid;
+  gap: 7px;
+}
+.sp-payment-total span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.sp-payment-total strong {
+  font-size: 26px;
+  color: var(--primary);
+}
+.sp-payment-methods {
+  display: grid;
+  gap: 10px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.sp-payment-methods legend {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 0 12px;
+}
+.sp-payment-method {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.sp-payment-method.is-selected {
+  border-color: var(--primary);
+  background: var(--active-bg);
+}
+.sp-payment-method > svg {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.sp-payment-method input {
+  accent-color: var(--primary);
+}
+.sp-payment-method > span {
+  display: grid;
+  gap: 5px;
+}
+.sp-payment-method strong {
+  font-size: 13px;
+}
+.sp-payment-method small {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.sp-payment-preview {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+.sp-payment-preview strong {
+  font-size: 12px;
+  color: var(--primary);
+}
+.sp-payment-preview p {
+  margin: 7px 0;
+  font-size: 11px;
+}
+.sp-payment-preview small {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.sp-payment-qr {
+  width: 106px;
+  height: 106px;
+  flex: 0 0 106px;
+  border-radius: 8px;
+  color: var(--primary);
+}
+.sp-invoice-paper {
+  width: min(820px, 100%);
+  padding: 28px;
+}
+.sp-invoice-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 23px;
+  border-bottom: 1px solid var(--border);
+}
+.sp-invoice-heading h2 {
+  margin: 10px 0 0;
+  font-size: 20px;
+}
+.sp-invoice-lines {
+  margin: 5px 0 20px;
+}
+.sp-invoice-lines > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 25px;
+  border-bottom: 1px solid var(--border);
+  padding: 17px 0;
+  font-size: 13px;
+}
+.sp-invoice-lines dt {
+  color: var(--text-muted);
+}
+.sp-invoice-lines dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.sp-invoice-lines .sp-invoice-total {
+  padding: 21px 0;
+}
+.sp-invoice-total dd {
+  color: var(--primary);
+  font-size: 21px;
+}
+.sp-invoice-paper > .sp-toolbar {
+  margin-top: 22px;
+}
+.sp-notification-list {
+  overflow: hidden;
+}
+.sp-notification-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 17px;
+  padding: 22px;
+  text-decoration: none;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.sp-notification-row:last-child {
+  border-bottom: 0;
+}
+.sp-notification-row:hover,
+.sp-notification-row:focus-visible {
+  background: var(--active-bg);
+}
+.sp-notification-row.is-unread {
+  background: rgba(166, 221, 249, 0.12);
+}
+.sp-notification-icon {
+  width: 43px;
+  height: 43px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--primary);
+  background: var(--active-bg);
+  flex-shrink: 0;
+}
+.sp-notification-icon--hocPhi {
+  color: var(--warning, #ad791e);
+  background: rgba(255, 214, 197, 0.34);
+}
+.sp-notification-icon--ketQua {
+  color: var(--info);
+  background: rgba(205, 186, 251, 0.25);
+}
+.sp-notification-main {
+  display: grid;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+}
+.sp-notification-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+.sp-notification-summary {
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+.sp-unread-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primary);
+  flex-shrink: 0;
+}
+.sp-notification-meta {
+  display: grid;
+  justify-items: end;
+  gap: 9px;
+  padding-top: 4px;
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.sp-notification-meta small {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.sp-notification-chevron {
+  align-self: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.sp-list-caption {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 0;
+}
+.sp-notification-paging {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.sp-notification-content {
+  padding: 24px;
+  min-width: 0;
+}
+.sp-notification-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sp-notification-content > h2 {
+  margin: 18px 0 20px;
+  font-size: 23px;
+  line-height: 1.5;
+}
+.sp-notification-sender {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.sp-sender-avatar {
+  flex-shrink: 0;
+  width: 37px;
+  height: 37px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--active-bg);
+  color: var(--primary);
+  font-weight: 700;
+}
+.sp-notification-sender strong {
+  font-size: 12px;
+}
+.sp-notification-sender small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.6;
+  margin-top: 5px;
+}
+.sp-notification-body {
+  padding: 12px 0;
+  font-size: 13px;
+  line-height: 1.95;
+}
+.sp-notification-body p {
+  margin: 15px 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.sp-notification-attachments {
+  padding: 18px;
+  background: rgba(166, 221, 249, 0.09);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-top: 8px;
+}
+.sp-notification-attachments .sp-stack {
+  margin-top: 17px;
+}
+.sp-notification-info {
+  margin: 17px 0 0;
+  display: grid;
+  gap: 17px;
+}
+.sp-notification-info > div {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) 1.5fr;
+  gap: 12px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.sp-notification-info dt {
+  color: var(--text-muted);
+}
+.sp-notification-info dd {
+  margin: 0;
+  font-weight: 500;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.sp-related-notifications {
+  margin-top: 14px;
+  display: grid;
+  gap: 4px;
+}
+.sp-related-notifications a {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 12px 0;
+  text-decoration: none;
+  color: var(--text);
+}
+.sp-related-notifications a:hover strong {
+  color: var(--primary);
+}
+.sp-related-notifications a > svg {
+  margin-top: 3px;
+  flex-shrink: 0;
+  color: var(--primary);
+}
+.sp-related-notifications a > span {
+  flex: 1;
+}
+.sp-related-notifications strong {
+  font-size: 11px;
+  line-height: 1.65;
+  font-weight: 500;
+}
+.sp-related-notifications small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 10px;
+  margin-top: 7px;
+}
+.sp-notification-footer {
+  display: grid;
+  gap: 13px;
+  border-top: 1px solid var(--border);
+  margin-top: 24px;
+  padding-top: 18px;
+}
+.sp-notification-footer > div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sp-read-state {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--primary);
+}
+.sp-reply-card {
+  max-width: 920px;
+}
+.sp-reply-about {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  padding-bottom: 22px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.sp-reply-about > svg {
+  color: var(--primary);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.sp-reply-about h2 {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.6;
+}
+.sp-reply-about p {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 8px 0;
+}
+.sp-reply-counter {
+  display: block;
+  margin-top: -7px;
+  text-align: right;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+.sp-reply-history {
+  max-width: 920px;
+}
+.sp-reply-history article {
+  border-top: 1px solid var(--border);
+  padding-top: 19px;
+  margin-top: 19px;
+}
+.sp-reply-history article strong {
+  font-size: 12px;
+}
+.sp-reply-history article .sp-toolbar > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--primary);
+  font-size: 10px;
+}
+.sp-reply-history article p {
+  font-size: 12px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.sp-reply-history article time {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+@media (max-width: 1100px) {
+  .sp-notification-meta {
+    max-width: 110px;
+    text-align: right;
+    line-height: 1.6;
+  }
+  .sp-notification-content > h2 {
+    font-size: 20px;
+  }
+}
+@media (max-width: 760px) {
+  .sp-fees-hero {
+    align-items: flex-start;
+    padding: 22px;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .sp-fees-hero--paid {
+    flex-direction: row;
+  }
+  .sp-invoice-paper {
+    padding: 21px;
+  }
+  .sp-invoice-lines > div {
+    gap: 18px;
+    font-size: 12px;
+  }
+  .sp-notification-row {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 18px;
+  }
+  .sp-notification-main {
+    flex-basis: calc(100% - 60px);
+  }
+  .sp-notification-meta {
+    padding-left: 55px;
+    max-width: none;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+  }
+  .sp-notification-chevron {
+    display: none;
+  }
+  .sp-notification-content {
+    padding: 20px;
+  }
+  .sp-notification-attachments {
+    padding: 13px;
+  }
+  .sp-notification-attachments .sp-file {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    align-items: start;
+    gap: 10px 12px;
+  }
+  .sp-notification-attachments .sp-file-actions {
+    grid-column: 2;
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+  .sp-invoice-heading {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 480px) {
+  .sp-payment-total {
+    flex-wrap: wrap;
+  }
+  .sp-payment-preview {
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .sp-payment-qr {
+    width: 78px;
+    height: 78px;
+    flex-basis: 78px;
+  }
+  .sp-payment-preview strong {
+    font-size: 11px;
+  }
+  .sp-payment-method {
+    padding: 13px 10px;
+    gap: 9px;
+  }
+  .sp-invoice-lines > div {
+    display: grid;
+    gap: 7px;
+  }
+  .sp-invoice-lines dd {
+    text-align: left;
+  }
+  .sp-notification-footer > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .sp-notification-sender {
+    align-items: flex-start;
+  }
+  .sp-notification-content > h2 {
+    font-size: 18px;
+  }
+}
