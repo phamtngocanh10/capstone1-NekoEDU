@@ -12,7 +12,10 @@ import {
 } from "lucide-react";
 import Button from "../common/Button";
 import Input from "../common/Input";
-import { login } from '../api/auth';
+import { login, ROLE_HOME } from '../api/auth';
+import {
+  DANG_NHAP_MAU, dangNhapTroGiang, laTaiKhoanTroGiang,
+} from '../components/TeachingAssistant/layout/duLieuTaiKhoan';
 
 const ROLES = [
   { icon: ShieldCheck, name: "Manager", desc: "Toàn quyền vận hành" },
@@ -56,30 +59,31 @@ export default function LoginPage() {
     }
     setDangGui(true);
     try {
-      const username = taiKhoan.trim();
-      const ketQua = await login({
-        username,
-        password: matKhau,
-        captcha: maXacNhan.trim(),
-      });
-      const vaiTro = ketQua.user?.role?.toLowerCase();
-      if (vaiTro !== "manager" && vaiTro !== "lecturer") {
-        throw new Error("Tài khoản chưa được cấp quyền truy cập giao diện này.");
-      }
-      const isLecturer = vaiTro === "lecturer";
-      const user = { ...ketQua.user, role: isLecturer ? "Lecturer" : "Manager" };
-      localStorage.setItem("neko-auth-user", JSON.stringify(user));
-      if (ketQua.access_token) {
-        localStorage.setItem("access_token", ketQua.access_token);
+      const tenDangNhap = taiKhoan.trim();
+      let trangChu;
+      if (laTaiKhoanTroGiang(tenDangNhap)) {
+        dangNhapTroGiang(tenDangNhap, matKhau);
+        trangChu = ROLE_HOME['teaching assistant'];
       } else {
-        localStorage.removeItem("access_token");
+        const ketQua = await login({ username: tenDangNhap, password: matKhau });
+        const vaiTro = ketQua.user?.role?.toLowerCase();
+        if (!ROLE_HOME[vaiTro]) {
+          throw new Error("Tài khoản chưa được cấp quyền truy cập giao diện này.");
+        }
+        localStorage.setItem("neko-auth-user", JSON.stringify(ketQua.user));
+        if (ketQua.access_token) {
+          localStorage.setItem("access_token", ketQua.access_token);
+        } else {
+          localStorage.removeItem("access_token");
+        }
+        trangChu = ROLE_HOME[vaiTro];
       }
       if (ghiNho) {
-        localStorage.setItem("neko-login-username", username);
+        localStorage.setItem("neko-login-username", tenDangNhap);
       } else {
         localStorage.removeItem("neko-login-username");
       }
-      navigate(isLecturer ? "/lecturer/tongquan" : "/tongquan", { replace: true });
+      navigate(trangChu, { replace: true });
     } catch (err) {
       setLoi(err.response?.data?.message ?? err.message ?? "Không thể đăng nhập. Vui lòng thử lại.");
     } finally {
@@ -190,6 +194,10 @@ export default function LoginPage() {
           <Button type="submit" block disabled={dangGui}>
             {dangGui ? "Đang đăng nhập…" : "Đăng nhập"}
           </Button>
+          <p className="login__demo-note">
+            Tài khoản Trợ giảng mẫu: <strong>{DANG_NHAP_MAU.taiKhoan}</strong>
+            {' · '}Mật khẩu: <strong>{DANG_NHAP_MAU.matKhau}</strong>
+          </p>
         </form>
       </section>
     </div>

@@ -3,6 +3,19 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import LoginPage from "../pages/LoginPage";
 import PasswordRecoveryPage from "../pages/PasswordRecoveryPage";
 import PlaceholderPage from "../pages/PlaceholderPage";
+import { ROLE_HOME } from '../api/auth';
+import { daDangNhapTroGiang } from '../components/TeachingAssistant/layout/duLieuTaiKhoan';
+const BoCucTroGiang = lazy(() => import('../components/TeachingAssistant/layout/BoCucTroGiang'));
+const DangXuatTroGiang = lazy(() => import('../components/TeachingAssistant/layout/DangXuatTroGiang'));
+const TongQuanTroGiang = lazy(() => import('../components/TeachingAssistant/components/TongQuan'));
+const LichHoTro = lazy(() => import('../components/TeachingAssistant/components/LichHoTro'));
+const LopDuocPhanCong = lazy(() => import('../components/TeachingAssistant/components/LopDuocPhanCong'));
+const DiemDanhHoTro = lazy(() => import('../components/TeachingAssistant/components/DiemDanhHoTro'));
+const ChamDiemTroGiang = lazy(() => import('../components/TeachingAssistant/components/ChamDiem'));
+const NhapDiemTroGiang = lazy(() => import('../components/TeachingAssistant/components/NhapDiem'));
+const YeuCauCuaToi = lazy(() => import('../components/TeachingAssistant/components/YeuCauCuaToi'));
+const ThongBaoTroGiang = lazy(() => import('../components/TeachingAssistant/components/ThongBao'));
+const ThongTinTroGiang = lazy(() => import('../components/TeachingAssistant/components/ThongTinCaNhan'));
 const BoCucGiangVien = lazy(
   () => import("../components/Lecturer/layout/bocuc"),
 );
@@ -93,19 +106,21 @@ function ScrollToTop() {
 }
 
 function BaoVeVaiTro({ role, children }) {
+  if (role === 'Teaching Assistant') {
+    return daDangNhapTroGiang() ? children : <Navigate to="/login" replace />;
+  }
   let account = null;
   try {
     account = JSON.parse(localStorage.getItem("neko-auth-user"));
   } catch {
     /* Chuyển về đăng nhập nếu phiên không hợp lệ. */
   }
-  const vaiTro = account?.role?.toLowerCase();
-  if (!localStorage.getItem('access_token') || !account || !["manager", "lecturer"].includes(vaiTro)) {
+  const vaiTro = typeof account?.role === 'string' ? account.role.toLowerCase() : '';
+  if (!localStorage.getItem('access_token') || !account || !ROLE_HOME[vaiTro]) {
     return <Navigate to="/login" replace />;
   }
   if (vaiTro !== role.toLowerCase()) {
-    const homePage = vaiTro === "lecturer" ? "/lecturer/tongquan" : "/tongquan";
-    return <Navigate to={homePage} replace />;
+    return <Navigate to={ROLE_HOME[vaiTro]} replace />;
   }
   return children;
 }
@@ -130,6 +145,24 @@ export default function AppRouter() {
             element={<PasswordRecoveryPage key="reset" reset />}
           />
           <Route path="/dangky" element={<PlaceholderPage title="Đăng ký" />} />
+          <Route path="/assistant" element={
+            <BaoVeVaiTro role="Teaching Assistant">
+              <BoCucTroGiang />
+            </BaoVeVaiTro>
+          }>
+            <Route index element={<Navigate to="tongquan" replace />} />
+            <Route path="dangxuat" element={<DangXuatTroGiang />} />
+            <Route path="tongquan" element={<TongQuanTroGiang />} />
+            <Route path="lichhotro" element={<LichHoTro />} />
+            <Route path="lophoc" element={<LopDuocPhanCong />} />
+            <Route path="lophoc/:classId" element={<LopDuocPhanCong />} />
+            <Route path="diemdanh" element={<DiemDanhHoTro />} />
+            <Route path="chamdiem" element={<ChamDiemTroGiang />} />
+            <Route path="chamdiem/nhap/:grantId" element={<NhapDiemTroGiang />} />
+            <Route path="chamdiem/yeucau" element={<YeuCauCuaToi />} />
+            <Route path="thongbao" element={<ThongBaoTroGiang />} />
+            <Route path="thongtincanhan" element={<ThongTinTroGiang />} />
+          </Route>
           <Route
             path="/lecturer"
             element={

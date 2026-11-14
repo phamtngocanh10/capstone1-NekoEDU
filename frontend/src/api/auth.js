@@ -1,6 +1,7 @@
 ﻿import apiClient from './client'
 
-const ROLE_NAMES = { MANAGER: 'Manager', LECTURER: 'Lecturer' }
+const ROLE_NAMES = { MANAGER: 'Manager', LECTURER: 'Lecturer', TEACHING_ASSISTANT: 'Teaching Assistant' }
+export const ROLE_HOME = { manager: '/tongquan', lecturer: '/lecturer/tongquan', 'teaching assistant': '/assistant/tongquan' }
 
 export function normalizeUser(account) {
   const role = ROLE_NAMES[account?.role?.code]
@@ -8,6 +9,7 @@ export function normalizeUser(account) {
   const created = account.created_at ? new Date(account.created_at) : null
   return {
     id: String(account.id), username: account.username, name: account.full_name,
+    staffId: account.profile?.type === 'STAFF' ? String(account.profile.id) : account.staffId ?? null,
     role, email: account.email ?? '', phone: account.phone ?? '',
     address: account.address ?? '', avatarUrl: account.avatar_url ?? null,
     joined: created && !Number.isNaN(created.getTime())

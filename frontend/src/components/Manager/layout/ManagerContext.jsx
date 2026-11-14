@@ -9,7 +9,7 @@ const INITIAL_USER = {
   email: '', phone: '', address: '', joined: '',
 }
 
-export function ManagerProvider({ children, initialUser = INITIAL_USER }) {
+export function ManagerProvider({ children, initialUser = INITIAL_USER, taiHoSo = getProfile, khoaLuuTaiKhoan = 'neko-auth-user' }) {
   const [user, setUser] = useState(() => {
     if (initialUser !== INITIAL_USER) return initialUser
     try {
@@ -22,19 +22,20 @@ export function ManagerProvider({ children, initialUser = INITIAL_USER }) {
   const [header, setHeader] = useState(null) // tiêu đề riêng của trang con, đặt bằng usePageHeader()
 
   useEffect(() => {
+    if (!taiHoSo) return
     let mounted = true
-    getProfile().then(account => { if (mounted) setUser(account) })
+    taiHoSo().then(account => { if (mounted) setUser(account) })
       .catch(error => { if (mounted) setToast(error.message) })
     return () => { mounted = false }
-  }, [])
+  }, [taiHoSo])
 
   const updateUser = useCallback((changes) => {
     setUser((currentUser) => {
       const next = { ...currentUser, ...changes }
-      localStorage.setItem('neko-auth-user', JSON.stringify(next))
+      try { localStorage.setItem(khoaLuuTaiKhoan, JSON.stringify(next)) } catch { /* Vẫn giữ thay đổi trong phiên đang mở. */ }
       return next
     })
-  }, [])
+  }, [khoaLuuTaiKhoan])
   const openPasswordModal = useCallback(() => setPwOpen(true), [])
   const closePasswordModal = useCallback(() => setPwOpen(false), [])
   const notify = useCallback((message) => setToast(message), [])

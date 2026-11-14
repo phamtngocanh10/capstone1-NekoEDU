@@ -1,0 +1,123 @@
+/* Assistant workflows inherit the Manager palette and shared glass surfaces. */
+.ta-workflow-page { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.ta-workflow-toolbar, .ta-workflow-filters, .ta-button-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ta-workflow-toolbar { justify-content: space-between; }
+.ta-workflow-tabs { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.ta-workflow-tabs .u-btn { font-size: 12px; }
+.ta-workflow-filters { justify-content: space-between; margin: 18px 0; }
+.ta-workflow-filters .u-search { flex: 1; max-width: 360px; }
+.ta-workflow-filters .u-field { min-width: 190px; }
+.ta-workflow-filters .u-field__label { font-size: 11px; }
+.ta-workflow-note { display: flex; align-items: flex-start; gap: 9px; color: var(--text-muted); font-size: 12px; padding: 0 3px; }
+.ta-workflow-note > svg { flex-shrink: 0; margin-top: 1px; color: var(--primary); }
+.ta-workflow-error, .ta-save-error { color: var(--danger-text); padding: 12px 14px; background: var(--danger-bg); border-radius: 10px; font-size: 12px; }
+.ta-workflow-error { grid-column: 1 / -1; }
+.ta-save-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; }
+.ta-workflow-page .ta-grading-locked { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 64px 24px; min-height: 370px; }
+.ta-lock-illustration { display: grid; place-items: center; width: 76px; height: 76px; background: var(--liquid-reflection), var(--active-bg); color: var(--primary); border: 1px solid var(--border); border-radius: 24px; box-shadow: var(--glass-shadow); margin-bottom: 22px; }
+.ta-grading-locked h2 { font-size: 19px; font-weight: 750; margin-bottom: 12px; }
+.ta-grading-locked p { color: var(--text-muted); line-height: 1.9; max-width: 520px; }
+.ta-grading-locked .ta-button-row { justify-content: center; margin-top: 24px; }
+.ta-grant-list { display: flex; flex-direction: column; }
+.ta-grant-row { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; padding: 20px 0; border-top: 1px solid var(--divider); }
+.ta-grant-row:first-child { border-top: 0; }
+.ta-grant-icon { width: 44px; height: 44px; display: grid; place-items: center; flex-shrink: 0; border-radius: 13px; background: var(--soft-blue); color: var(--primary-deep); }
+.ta-grant-row.is-open .ta-grant-icon { background: var(--active-bg); color: var(--primary); }
+.ta-grant-info { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 4px; }
+.ta-grant-info > strong { font-size: 14px; }
+.ta-grant-info > span { font-size: 12px; color: var(--text-muted); }
+.ta-grant-info > small { display: flex; align-items: center; gap: 5px; color: var(--text-faint); font-size: 11px; }
+.ta-request-form .ta-field-note { grid-column: 1 / -1; color: var(--text-muted); font-size: 12px; line-height: 1.7; }
+.ta-request-fields { border: 0; margin: 0; min-width: 0; }
+.ta-history-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.ta-history-content { display: flex; align-items: center; gap: 10px; min-width: 200px; }
+.ta-history-card .u-table { min-width: 1100px; table-layout: auto; }
+.ta-history-content > span { min-width: 0; }
+.ta-history-content strong { white-space: normal; line-height: 1.6; }
+.ta-history-content > svg { color: var(--primary); flex-shrink: 0; }
+.ta-history-content strong { display: block; font-size: 12px; }
+.ta-history-content small { display: block; margin-top: 4px; color: var(--text-faint); }
+.ta-history-time { font-size: 11px; line-height: 1.8; white-space: nowrap; }
+.ta-review-note { display: block; min-width: 100px; max-width: 230px; white-space: normal; line-height: 1.6; }
+.ta-table-caption { margin-top: 16px; font-size: 11px; color: var(--text-faint); }
+.ta-history-detail { padding: 22px 24px; }
+.ta-history-detail dl { display: flex; flex-direction: column; margin: 20px 0 0; gap: 16px; }
+.ta-history-detail dt { color: var(--text-muted); font-size: 11px; margin-bottom: 5px; }
+.ta-history-detail dd { margin: 0; font-weight: 600; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ta-grading-banner { display: flex; align-items: flex-start; gap: 14px; padding: 18px 22px; background: var(--active-bg); border: 1px solid var(--success-border); border-radius: var(--radius); }
+.ta-grading-banner.is-closed { background: var(--info-bg); border-color: var(--info-border); }
+.ta-grading-banner-icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; background: var(--surface-overlay); color: var(--primary); flex-shrink: 0; }
+.ta-grading-banner > div { flex: 1; }
+.ta-grading-banner strong { display: block; font-size: 13px; }
+.ta-grading-banner p { color: var(--text-muted); margin: 5px 0; font-size: 12px; }
+.ta-grading-banner small { font-size: 11px; color: var(--text-muted); }
+.ta-grade-heading, .ta-attendance-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 22px; }
+.ta-grade-heading h2, .ta-attendance-heading h2 { font-size: 17px; font-weight: 750; }
+.ta-grade-heading p, .ta-attendance-heading p { color: var(--text-muted); margin-top: 6px; font-size: 12px; }
+.ta-attendance-heading p { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.ta-grade-table-wrap { width: 100%; overflow-x: auto; }
+.ta-grade-table, .ta-attendance-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.ta-grade-table { min-width: 650px; }
+.ta-grade-table th, .ta-attendance-table th { color: var(--text-faint); text-align: left; font-size: 10px; letter-spacing: .035em; font-weight: 650; padding: 13px 12px; background: var(--surface-raised); border-bottom: 1px solid var(--divider); }
+.ta-grade-table td, .ta-attendance-table td { padding: 13px 12px; border-bottom: 1px solid var(--divider); }
+.ta-grade-table tr:last-child td, .ta-attendance-table tr:last-child td { border-bottom: 0; }
+.ta-grade-table td:first-child { width: 38%; min-width: 220px; }
+.ta-grade-table th:not(:first-child), .ta-grade-table td:not(:first-child) { text-align: center; }
+.ta-score-input { width: 62px; height: 35px; padding: 5px 6px; border-radius: 9px; border: 1px solid var(--info-border); background: var(--surface-overlay); color: var(--text); text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ta-score-input:focus { border-color: var(--primary); outline: 2px solid var(--active-bg); }
+.ta-score-input:disabled { background: var(--bg); color: var(--text-muted); border-color: var(--divider); opacity: .85; }
+.ta-score-input.is-invalid { border-color: var(--danger); background: var(--danger-bg); }
+.ta-average { font-size: 13px; color: var(--primary-dark); font-variant-numeric: tabular-nums; }
+.ta-grade-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 18px; border-top: 1px solid var(--divider); padding-top: 20px; margin-top: 8px; }
+.ta-grade-footer > div:first-child { display: flex; flex-direction: column; gap: 6px; }
+.ta-grade-footer strong { font-size: 12px; }
+.ta-grade-footer span { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); }
+.ta-no-results { text-align: center; color: var(--text-muted); padding: 36px 12px !important; }
+.ta-feedback, .ta-attendance-readonly { display: flex; align-items: flex-start; gap: 10px; padding: 14px 18px; border-radius: 11px; background: var(--warning-bg); color: var(--warning); line-height: 1.7; }
+.ta-feedback > svg, .ta-attendance-readonly > svg { flex-shrink: 0; margin-top: 2px; }
+.ta-feedback strong { display: block; }
+.ta-confirm-body { padding: 24px; line-height: 1.8; color: var(--text-muted); }
+.ta-confirm-body p + p { margin-top: 12px; }
+.ta-confirm-body strong { color: var(--text); }
+.ta-attendance-selectors { display: grid; grid-template-columns: minmax(200px, 1.3fr) minmax(170px, .7fr) minmax(220px, 1fr); gap: 16px; }
+.ta-attendance-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
+.ta-attendance-stats .u-mini { box-shadow: none; padding: 13px 16px; }
+.ta-attendance-table { min-width: 760px; }
+.ta-attendance-table td:first-child { min-width: 210px; }
+.ta-attendance-options { display: flex; gap: 7px; }
+.ta-attendance-option { display: flex; align-items: center; justify-content: center; gap: 5px; min-width: 78px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--divider); border-radius: 9px; color: var(--text-muted); font-size: 11px; font-weight: 600; cursor: pointer; }
+.ta-attendance-option:not(:disabled):hover { background: var(--soft-blue); }
+.ta-attendance-option.is-selected { background: var(--success-bg); border-color: var(--success-border); color: var(--success); }
+.ta-attendance-option--late.is-selected { background: var(--warning-bg); border-color: var(--glass-peach); color: var(--warning); }
+.ta-attendance-option--absent.is-selected { background: var(--danger-bg); border-color: var(--glass-peach); color: var(--danger-text); }
+.ta-attendance-option:disabled { cursor: default; opacity: .7; }
+.ta-attendance-note { width: 100%; min-width: 140px; height: 35px; padding: 8px 10px; background: var(--surface); color: var(--text); border: 1px solid var(--divider); border-radius: 8px; font-size: 12px; }
+.ta-attendance-note:disabled { opacity: .7; }
+.ta-attendance-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--text-muted); font-size: 11px; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--divider); }
+.ta-attendance-footer > span:first-child { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+@media (max-width: 1180px) {
+  .ta-history-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ta-attendance-selectors { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 650px) {
+  .ta-workflow-page { gap: 16px; }
+  .ta-workflow-toolbar { align-items: stretch; }
+  .ta-workflow-toolbar > .u-btn { width: 100%; }
+  .ta-workflow-tabs { width: 100%; }
+  .ta-workflow-tabs .u-btn { flex: 1; padding-inline: 10px; }
+  .ta-workflow-page .ta-grading-locked { padding: 38px 18px; }
+  .ta-grading-locked h2 { font-size: 17px; }
+  .ta-grant-info { min-width: calc(100% - 60px); }
+  .ta-grant-row > .u-btn { margin-left: auto; }
+  .ta-grading-banner { padding: 14px; flex-wrap: wrap; }
+  .ta-grading-banner > div { min-width: 180px; }
+  .ta-grading-banner > .u-chip { margin-left: 54px; }
+  .ta-attendance-selectors { grid-template-columns: 1fr; }
+  .ta-attendance-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ta-grade-footer .ta-button-row { width: 100%; }
+  .ta-grade-footer .ta-button-row > .u-btn { flex: 1; font-size: 11px; padding-inline: 10px; }
+  .ta-grade-heading .u-search, .ta-workflow-filters .u-search { max-width: none; min-width: 100%; }
+  .ta-workflow-filters > .u-field { width: 100%; }
+  .ta-attendance-footer { align-items: flex-start; }
+  .ta-desktop-break { display: none; }
+}
