@@ -1,130 +1,156 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, ChevronRight, Search, X } from 'lucide-react';
-import useBamNgoai from '../../../common/useClickOutside';
-import { duLieuTroGiang } from '../duLieuTroGiang';
-import { coQuyen, locTheoTuKhoa, useTaiDuLieu } from '../components/DungChung';
-import { useTroGiang } from './NguCanhTroGiang';
+import useClickOutside from '../../../common/useClickOutside.js';
+import { assistantData } from '../data/duLieuTroGiang';
+import { hasPermission, filterByQuery, useAsyncData } from '../components/shared/DungChung';
+import { useAssistant } from './NguCanhTroGiang';
 
-function KetQuaLopHoc({ lopHoc, dongTimKiem }) {
+function ClassSearchResult({ classDetails, closeSearch }) {
   return (
-    <Link to={`/assistant/lophoc/${lopHoc.id}`} onClick={dongTimKiem}>
+    <Link to={`/assistant/lophoc/${classDetails.id}`} onClick={closeSearch}>
       <BookOpen size={16} />
       <span>
-        <strong>{lopHoc.name}</strong>
-        <small>{lopHoc.code} · {lopHoc.teacher}</small>
+        <strong>{classDetails.name}</strong>
+        <small>
+          {classDetails.code} · {classDetails.teacher}
+        </small>
       </span>
       <ChevronRight size={14} />
     </Link>
   );
 }
 
-function KetQuaHocVien({ hocVien, dongTimKiem }) {
-  const chuCaiDau = hocVien.name?.trim().split(/\s+/).at(-1)?.charAt(0);
-  const tuKhoaHocVien = encodeURIComponent(hocVien.code || hocVien.name);
+function StudentSearchResult({ student, closeSearch }) {
+  const initial = student.name?.trim().split(/\s+/).at(-1)?.charAt(0);
+  const studentSearchTerm = encodeURIComponent(student.code || student.name);
 
   return (
     <Link
-      to={`/assistant/lophoc/${hocVien.maLop}?student=${tuKhoaHocVien}`}
-      onClick={dongTimKiem}
+      to={`/assistant/lophoc/${student.classId}?student=${studentSearchTerm}`}
+      onClick={closeSearch}
     >
-      <span className="ta-search-initial">{chuCaiDau}</span>
+      <span className="ta-search-initial">{initial}</span>
       <span>
-        <strong>{hocVien.name}</strong>
-        <small>{hocVien.code} · {hocVien.tenLop}</small>
+        <strong>{student.name}</strong>
+        <small>
+          {student.code} · {student.className}
+        </small>
       </span>
       <ChevronRight size={14} />
     </Link>
   );
 }
 
-function useTimHocVien(cacLop, choPhepTai) {
-  const khoaPhanCong = cacLop.map(lop => `${lop.id}:${lop.size ?? 0}`).sort().join(',');
-  const nguonHocVien = useTaiDuLieu(async () => {
-    if (!choPhepTai) return [];
-    const cacDanhSach = await Promise.all(cacLop.map(async lopHoc => {
-      const hocVien = await duLieuTroGiang.layDanhSachHocVien(lopHoc.id);
-      return hocVien.map(thongTin => ({ ...thongTin, maLop: lopHoc.id, tenLop: lopHoc.name }));
-    }));
-    return cacDanhSach.flat();
-  }, [choPhepTai, khoaPhanCong]);
+function useStudentSearch(classes, isLoadEnabled) {
+  const assignmentKey = classes
+    .map((classItem) => `${classItem.id}:${classItem.size ?? 0}`)
+    .sort()
+    .join(',');
+  const studentSource = useAsyncData(async () => {
+    if (!isLoadEnabled) return [];
+    const lists = await Promise.all(
+      classes.map(async (classDetails) => {
+        const students = await assistantData.getClassStudents(classDetails.id);
+        return students.map((details) => ({
+          ...details,
+          classId: classDetails.id,
+          className: classDetails.name,
+        }));
+      })
+    );
+    return lists.flat();
+  }, [isLoadEnabled, assignmentKey]);
 
   // Gõ tiếp chỉ lọc danh sách đã đọc; không tạo bản sao dữ liệu cho mỗi từ khóa.
-  const cacMaLopHopLe = new Set(cacLop.map(lopHoc => String(lopHoc.id)));
+  const validClassIds = new Set(classes.map((classDetails) => String(classDetails.id)));
   return {
-    danhSach: choPhepTai
-      ? (nguonHocVien.duLieu ?? []).filter(hocVien => cacMaLopHopLe.has(String(hocVien.maLop)))
+    items: isLoadEnabled
+      ? (studentSource.data ?? []).filter((student) => validClassIds.has(String(student.classId)))
       : [],
-    dangTai: choPhepTai && cacLop.length > 0 && nguonHocVien.dangTai,
-    loiTai: choPhepTai ? nguonHocVien.loi : '',
+    loading: isLoadEnabled && classes.length > 0 && studentSource.loading,
+    loadError: isLoadEnabled ? studentSource.error : '',
   };
 }
 
-export default function TimKiemChung() {
-  const { duLieu, tuKhoa, datTuKhoa } = useTroGiang();
-  const [dangMo, datDangMo] = useState(false);
-  const vungTimKiem = useRef(null);
-  const lopDuocXem = duLieu.classes.filter(lopHoc => coQuyen(lopHoc, 'roster'));
-  const coTuKhoa = Boolean(tuKhoa.trim());
-  const danhSachHocVien = useTimHocVien(lopDuocXem, dangMo && coTuKhoa);
+export default function GlobalSearch() {
+  const { data, query, setQuery } = useAssistant();
+  const [isOpen, setIsOpen] = useState(false);
+  const searchRef = useRef(null);
+  const viewableClasses = data.classes.filter((classDetails) =>
+    hasPermission(classDetails, 'roster')
+  );
+  const hasSearchTerm = Boolean(query.trim());
+  const studentList = useStudentSearch(viewableClasses, isOpen && hasSearchTerm);
 
-  useBamNgoai(vungTimKiem, () => datDangMo(false), dangMo);
-  const cacLopTimThay = coTuKhoa
-    ? locTheoTuKhoa(duLieu.classes, tuKhoa, lopHoc => `${lopHoc.name} ${lopHoc.code}`).slice(0, 4)
+  useClickOutside(searchRef, () => setIsOpen(false), isOpen);
+  const matchingClasses = hasSearchTerm
+    ? filterByQuery(
+        data.classes,
+        query,
+        (classDetails) => `${classDetails.name} ${classDetails.code}`
+      ).slice(0, 4)
     : [];
-  const hocVienTimThay = coTuKhoa
-    ? locTheoTuKhoa(danhSachHocVien.danhSach, tuKhoa, hocVien => `${hocVien.name} ${hocVien.code}`).slice(0, 5)
+  const matchingStudents = hasSearchTerm
+    ? filterByQuery(studentList.items, query, (student) => `${student.name} ${student.code}`).slice(
+        0,
+        5
+      )
     : [];
-  const coKetQua = cacLopTimThay.length > 0 || hocVienTimThay.length > 0;
+  const hasResults = matchingClasses.length > 0 || matchingStudents.length > 0;
 
-  function dongTimKiem() {
-    datDangMo(false);
-    datTuKhoa('');
+  function closeSearch() {
+    setIsOpen(false);
+    setQuery('');
   }
 
-  function doiTuKhoa(suKien) {
-    datTuKhoa(suKien.target.value);
-    datDangMo(true);
+  function handleSearchChange(event) {
+    setQuery(event.target.value);
+    setIsOpen(true);
   }
 
   return (
-    <div className="ta-global-search" ref={vungTimKiem}>
+    <div className="ta-global-search" ref={searchRef}>
       <label className="search">
         <Search size={15} />
         <input
           placeholder="Tìm học viên, lớp học..."
           aria-label="Tìm học viên, lớp học"
-          value={tuKhoa}
-          onChange={doiTuKhoa}
-          onFocus={() => datDangMo(true)}
-          onKeyDown={suKien => {
-            if (suKien.key === 'Escape') datDangMo(false);
+          value={query}
+          onChange={handleSearchChange}
+          onFocus={() => setIsOpen(true)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setIsOpen(false);
           }}
         />
-        {tuKhoa && (
-          <button type="button" onClick={dongTimKiem} aria-label="Xóa tìm kiếm">
+        {query && (
+          <button type="button" onClick={closeSearch} aria-label="Xóa tìm kiếm">
             <X size={13} />
           </button>
         )}
       </label>
 
-      {dangMo && coTuKhoa && (
+      {isOpen && hasSearchTerm && (
         <div className="ta-search-results" role="region" aria-label="Kết quả tìm kiếm">
-          {cacLopTimThay.length > 0 && <small>Lớp học</small>}
-          {cacLopTimThay.map(lopHoc => (
-            <KetQuaLopHoc key={lopHoc.id} lopHoc={lopHoc} dongTimKiem={dongTimKiem} />
-          ))}
-          {hocVienTimThay.length > 0 && <small>Học viên</small>}
-          {hocVienTimThay.map(hocVien => (
-            <KetQuaHocVien
-              key={`${hocVien.maLop}-${hocVien.id}`}
-              hocVien={hocVien}
-              dongTimKiem={dongTimKiem}
+          {matchingClasses.length > 0 && <small>Lớp học</small>}
+          {matchingClasses.map((classDetails) => (
+            <ClassSearchResult
+              key={classDetails.id}
+              classDetails={classDetails}
+              closeSearch={closeSearch}
             />
           ))}
-          {danhSachHocVien.dangTai && <p role="status">Đang tìm học viên…</p>}
-          {danhSachHocVien.loiTai && <p role="alert">{danhSachHocVien.loiTai}</p>}
-          {!coKetQua && !danhSachHocVien.dangTai && !danhSachHocVien.loiTai && (
+          {matchingStudents.length > 0 && <small>Học viên</small>}
+          {matchingStudents.map((student) => (
+            <StudentSearchResult
+              key={`${student.classId}-${student.id}`}
+              student={student}
+              closeSearch={closeSearch}
+            />
+          ))}
+          {studentList.loading && <p role="status">Đang tìm học viên…</p>}
+          {studentList.loadError && <p role="alert">{studentList.loadError}</p>}
+          {!hasResults && !studentList.loading && !studentList.loadError && (
             <p>Không tìm thấy học viên hoặc lớp phù hợp.</p>
           )}
         </div>

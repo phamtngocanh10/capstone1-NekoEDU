@@ -4,18 +4,18 @@ import LoginPage from "../pages/LoginPage";
 import PasswordRecoveryPage from "../pages/PasswordRecoveryPage";
 import PlaceholderPage from "../pages/PlaceholderPage";
 import { ROLE_HOME } from '../api/auth';
-import { daDangNhapTroGiang } from '../components/TeachingAssistant/layout/duLieuTaiKhoan';
-const BoCucTroGiang = lazy(() => import('../components/TeachingAssistant/layout/BoCucTroGiang'));
-const DangXuatTroGiang = lazy(() => import('../components/TeachingAssistant/layout/DangXuatTroGiang'));
-const TongQuanTroGiang = lazy(() => import('../components/TeachingAssistant/components/TongQuan'));
-const LichHoTro = lazy(() => import('../components/TeachingAssistant/components/LichHoTro'));
-const LopDuocPhanCong = lazy(() => import('../components/TeachingAssistant/components/LopDuocPhanCong'));
-const DiemDanhHoTro = lazy(() => import('../components/TeachingAssistant/components/DiemDanhHoTro'));
-const ChamDiemTroGiang = lazy(() => import('../components/TeachingAssistant/components/ChamDiem'));
-const NhapDiemTroGiang = lazy(() => import('../components/TeachingAssistant/components/NhapDiem'));
-const YeuCauCuaToi = lazy(() => import('../components/TeachingAssistant/components/YeuCauCuaToi'));
-const ThongBaoTroGiang = lazy(() => import('../components/TeachingAssistant/components/ThongBao'));
-const ThongTinTroGiang = lazy(() => import('../components/TeachingAssistant/components/ThongTinCaNhan'));
+import { isAssistantLoggedIn } from "../components/TeachingAssistant/data/duLieuTaiKhoan";
+const AssistantLayout = lazy(() => import("../components/TeachingAssistant/layout/BoCucTroGiang"));
+const AssistantLogout = lazy(() => import("../components/TeachingAssistant/layout/DangXuatTroGiang"));
+const AssistantDashboard = lazy(() => import("../components/TeachingAssistant/components/TongQuan"));
+const AssistantSupportSchedule = lazy(() => import("../components/TeachingAssistant/components/LichHoTro"));
+const AssistantAssignedClasses = lazy(() => import("../components/TeachingAssistant/components/LopDuocPhanCong"));
+const AssistantAttendance = lazy(() => import("../components/TeachingAssistant/components/DiemDanhHoTro"));
+const AssistantGrading = lazy(() => import("../components/TeachingAssistant/components/ChamDiem"));
+const AssistantGradeEntry = lazy(() => import("../components/TeachingAssistant/components/ChamDiem/NhapDiem"));
+const AssistantRequests = lazy(() => import("../components/TeachingAssistant/components/ChamDiem/YeuCauCuaToi"));
+const AssistantNotifications = lazy(() => import("../components/TeachingAssistant/components/ThongBao"));
+const AssistantProfile = lazy(() => import("../components/TeachingAssistant/components/ThongTinCaNhan"));
 const BoCucGiangVien = lazy(
   () => import("../components/Lecturer/layout/bocuc"),
 );
@@ -105,9 +105,9 @@ function ScrollToTop() {
   return null;
 }
 
-function BaoVeVaiTro({ role, children }) {
+function RequireRole({ role, children }) {
   if (role === 'Teaching Assistant') {
-    return daDangNhapTroGiang() ? children : <Navigate to="/login" replace />;
+    return isAssistantLoggedIn() ? children : <Navigate to="/login" replace />;
   }
   let account = null;
   try {
@@ -115,12 +115,12 @@ function BaoVeVaiTro({ role, children }) {
   } catch {
     /* Chuyển về đăng nhập nếu phiên không hợp lệ. */
   }
-  const vaiTro = typeof account?.role === 'string' ? account.role.toLowerCase() : '';
-  if (!localStorage.getItem('access_token') || !account || !ROLE_HOME[vaiTro]) {
+  const roleName = typeof account?.role === 'string' ? account.role.toLowerCase() : '';
+  if (!localStorage.getItem('access_token') || !account || !ROLE_HOME[roleName]) {
     return <Navigate to="/login" replace />;
   }
-  if (vaiTro !== role.toLowerCase()) {
-    return <Navigate to={ROLE_HOME[vaiTro]} replace />;
+  if (roleName !== role.toLowerCase()) {
+    return <Navigate to={ROLE_HOME[roleName]} replace />;
   }
   return children;
 }
@@ -146,29 +146,29 @@ export default function AppRouter() {
           />
           <Route path="/dangky" element={<PlaceholderPage title="Đăng ký" />} />
           <Route path="/assistant" element={
-            <BaoVeVaiTro role="Teaching Assistant">
-              <BoCucTroGiang />
-            </BaoVeVaiTro>
+            <RequireRole role="Teaching Assistant">
+              <AssistantLayout />
+            </RequireRole>
           }>
             <Route index element={<Navigate to="tongquan" replace />} />
-            <Route path="dangxuat" element={<DangXuatTroGiang />} />
-            <Route path="tongquan" element={<TongQuanTroGiang />} />
-            <Route path="lichhotro" element={<LichHoTro />} />
-            <Route path="lophoc" element={<LopDuocPhanCong />} />
-            <Route path="lophoc/:classId" element={<LopDuocPhanCong />} />
-            <Route path="diemdanh" element={<DiemDanhHoTro />} />
-            <Route path="chamdiem" element={<ChamDiemTroGiang />} />
-            <Route path="chamdiem/nhap/:grantId" element={<NhapDiemTroGiang />} />
-            <Route path="chamdiem/yeucau" element={<YeuCauCuaToi />} />
-            <Route path="thongbao" element={<ThongBaoTroGiang />} />
-            <Route path="thongtincanhan" element={<ThongTinTroGiang />} />
+            <Route path="dangxuat" element={<AssistantLogout />} />
+            <Route path="tongquan" element={<AssistantDashboard />} />
+            <Route path="lichhotro" element={<AssistantSupportSchedule />} />
+            <Route path="lophoc" element={<AssistantAssignedClasses />} />
+            <Route path="lophoc/:classId" element={<AssistantAssignedClasses />} />
+            <Route path="diemdanh" element={<AssistantAttendance />} />
+            <Route path="chamdiem" element={<AssistantGrading />} />
+            <Route path="chamdiem/nhap/:grantId" element={<AssistantGradeEntry />} />
+            <Route path="chamdiem/yeucau" element={<AssistantRequests />} />
+            <Route path="thongbao" element={<AssistantNotifications />} />
+            <Route path="thongtincanhan" element={<AssistantProfile />} />
           </Route>
           <Route
             path="/lecturer"
             element={
-              <BaoVeVaiTro role="Lecturer">
+              <RequireRole role="Lecturer">
                 <BoCucGiangVien />
-              </BaoVeVaiTro>
+              </RequireRole>
             }
           >
             <Route index element={<Navigate to="tongquan" replace />} />
@@ -201,9 +201,9 @@ export default function AppRouter() {
           {/* Manager — trang con nằm dưới đường dẫn của mục sidebar tương ứng nên sidebar luôn sáng đúng mục */}
           <Route
             element={
-              <BaoVeVaiTro role="Manager">
+              <RequireRole role="Manager">
                 <ManagerLayout />
-              </BaoVeVaiTro>
+              </RequireRole>
             }
           >
             <Route path="/tongquan" element={<TongQuan />} />

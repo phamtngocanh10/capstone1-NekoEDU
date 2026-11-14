@@ -1,74 +1,78 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { KeyRound, LogOut, User } from 'lucide-react';
-import useBamNgoai from '../../../common/useClickOutside';
-import {
-  initialOf as chuCaiDauTen,
-  shortName as tenRutGon,
-  useManager as useNguCanhTaiKhoan,
-} from '../../Manager/layout/ManagerContext';
+import useClickOutside from '../../../common/useClickOutside.js';
+import { initialOf, shortName, useManager } from '../../Manager/layout/ManagerContext.jsx';
 
-function AnhTaiKhoan({ taiKhoan }) {
+function AccountAvatar({ account }) {
   return (
     <span className="avatar">
-      {taiKhoan.avatarUrl ? (
+      {account.avatarUrl ? (
         <img
-          src={taiKhoan.avatarUrl}
-          alt={taiKhoan.name}
+          src={account.avatarUrl}
+          alt={account.name}
           style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }}
         />
-      ) : chuCaiDauTen(taiKhoan.name)}
+      ) : (
+        initialOf(account.name)
+      )}
     </span>
   );
 }
 
-export default function MenuTaiKhoan() {
-  const chuyenTrang = useNavigate();
-  const { user: taiKhoan, openPasswordModal: moDoiMatKhau } = useNguCanhTaiKhoan();
-  const [dangMo, datDangMo] = useState(false);
-  const vungMenu = useRef(null);
-  useBamNgoai(vungMenu, () => datDangMo(false), dangMo);
+export default function AccountMenu() {
+  const navigate = useNavigate();
+  const { user: account, openPasswordModal } = useManager();
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef(null);
+  useClickOutside(menuRef, () => setIsOpen(false), isOpen);
 
-  function moHoSo() {
-    datDangMo(false);
-    chuyenTrang('/assistant/thongtincanhan');
+  function openProfile() {
+    setIsOpen(false);
+    navigate('/assistant/thongtincanhan');
   }
 
-  function moBieuMauMatKhau() {
-    datDangMo(false);
-    moDoiMatKhau();
+  function showPasswordForm() {
+    setIsOpen(false);
+    openPasswordModal();
   }
 
-  function dangXuat() {
-    datDangMo(false);
-    chuyenTrang('/assistant/dangxuat');
+  function logout() {
+    setIsOpen(false);
+    navigate('/assistant/dangxuat');
   }
 
   return (
-    <div className="menu-wrap" ref={vungMenu}>
+    <div className="menu-wrap" ref={menuRef}>
       <button
         className="user"
         aria-haspopup="menu"
-        aria-expanded={dangMo}
-        onClick={() => datDangMo(giaTri => !giaTri)}
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((value) => !value)}
       >
-        <AnhTaiKhoan taiKhoan={taiKhoan} />
-        <div><strong>{tenRutGon(taiKhoan.name)}</strong><small>Trợ giảng</small></div>
+        <AccountAvatar account={account} />
+        <div>
+          <strong>{shortName(account.name)}</strong>
+          <small>Trợ giảng</small>
+        </div>
       </button>
-      {dangMo && (
+      {isOpen && (
         <div className="popover popover--avatar" role="menu">
           <div className="avatar-card">
-            <AnhTaiKhoan taiKhoan={taiKhoan} />
-            <div><strong>{taiKhoan.name}</strong><small>{taiKhoan.email}</small></div>
+            <AccountAvatar account={account} />
+            <div>
+              <strong>{account.name}</strong>
+              <small>{account.email}</small>
+            </div>
           </div>
-          <button role="menuitem" className="menu-item" onClick={moHoSo}>
+          <button role="menuitem" className="menu-item" onClick={openProfile}>
             <User size={15} /> Thông tin cá nhân
           </button>
-          <button role="menuitem" className="menu-item" onClick={moBieuMauMatKhau}>
+          <button role="menuitem" className="menu-item" onClick={showPasswordForm}>
             <KeyRound size={15} /> Đổi mật khẩu
           </button>
           <hr />
-          <button role="menuitem" className="menu-item menu-item--danger" onClick={dangXuat}>
+          <button role="menuitem" className="menu-item menu-item--danger" onClick={logout}>
             <LogOut size={15} /> Đăng xuất
           </button>
         </div>

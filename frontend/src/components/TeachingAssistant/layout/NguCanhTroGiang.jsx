@@ -1,27 +1,36 @@
 import { createContext, useContext, useMemo, useState } from 'react';
-import { duLieuTroGiang } from '../duLieuTroGiang';
-import { useTaiDuLieu } from '../components/DungChung';
+import { assistantData } from '../data/duLieuTroGiang';
+import { useAsyncData } from '../components/shared/DungChung';
 
-const NguCanhTroGiang = createContext(null);
-const DU_LIEU_RONG = { staffId: null, classes: [], periods: [], grants: [], requests: [], submissions: [] };
+const AssistantContext = createContext(null);
+const EMPTY_WORKSPACE = {
+  staffId: null,
+  classes: [],
+  periods: [],
+  grants: [],
+  requests: [],
+  submissions: [],
+};
 
-export function CungCapTroGiang({ children: noiDung }) {
+export function AssistantProvider({ children: content }) {
   const {
-    duLieu: duLieuDaTai,
-    dangTai,
-    loi: loiTai,
-    taiLai: taiLaiDuLieu,
-  } = useTaiDuLieu(() => duLieuTroGiang.layKhongGian());
-  const duLieu = useMemo(() => ({ ...DU_LIEU_RONG, ...duLieuDaTai }), [duLieuDaTai]);
-  const [tuKhoa, datTuKhoa] = useState('');
+    data: loadedData,
+    loading,
+    error: loadError,
+    reload: reloadData,
+  } = useAsyncData(() => assistantData.getWorkspace());
+  const data = useMemo(() => ({ ...EMPTY_WORKSPACE, ...loadedData }), [loadedData]);
+  const [query, setQuery] = useState('');
 
-  const nguCanh = useMemo(() => ({ duLieu, taiLaiDuLieu, dangTai, loiTai, tuKhoa, datTuKhoa }),
-    [duLieu, taiLaiDuLieu, dangTai, loiTai, tuKhoa]);
-  return <NguCanhTroGiang.Provider value={nguCanh}>{noiDung}</NguCanhTroGiang.Provider>;
+  const context = useMemo(
+    () => ({ data, reloadData, loading, loadError, query, setQuery }),
+    [data, reloadData, loading, loadError, query]
+  );
+  return <AssistantContext.Provider value={context}>{content}</AssistantContext.Provider>;
 }
 
-export function useTroGiang() {
-  const nguCanh = useContext(NguCanhTroGiang);
-  if (!nguCanh) throw new Error('useTroGiang cần nằm trong CungCapTroGiang.');
-  return nguCanh;
+export function useAssistant() {
+  const context = useContext(AssistantContext);
+  if (!context) throw new Error('useAssistant must be used within AssistantProvider.');
+  return context;
 }

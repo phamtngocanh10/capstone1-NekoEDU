@@ -1,27 +1,29 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Btn, Card } from '../../../common/ui';
-import { dangXuatTroGiang } from './duLieuTaiKhoan';
+import { logoutAssistant } from '../data/duLieuTaiKhoan';
 
 // Chỉ xóa phiên khi đã rời trang, sau cảnh báo thay đổi chưa lưu nếu có.
-export default function DangXuatTroGiang() {
-  const chuyenTrang = useNavigate();
-  const [loi, datLoi] = useState('');
-  const xuLyDangXuat = useCallback(() => {
+export default function Logout() {
+  const navigate = useNavigate();
+  const [error, setError] = useState('');
+  const handleLogout = useCallback(() => {
     try {
-      dangXuatTroGiang();
-      chuyenTrang('/login', { replace: true });
-    } catch (loiDangXuat) {
-      datLoi(loiDangXuat.message);
+      logoutAssistant();
+      navigate('/login', { replace: true });
+    } catch (logoutError) {
+      setError(logoutError.message);
     }
-  }, [chuyenTrang]);
+  }, [navigate]);
 
-  useEffect(() => { xuLyDangXuat(); }, [xuLyDangXuat]);
+  useEffect(() => {
+    handleLogout();
+  }, [handleLogout]);
 
   return (
-    <Card className="ta-load" role={loi ? 'alert' : 'status'}>
-      <p>{loi || 'Đang đăng xuất…'}</p>
-      {loi && <Btn onClick={xuLyDangXuat}>Thử lại</Btn>}
+    <Card className="ta-load" role={error ? 'alert' : 'status'}>
+      <p>{error || 'Đang đăng xuất…'}</p>
+      {error && <Btn onClick={handleLogout}>Thử lại</Btn>}
     </Card>
   );
 }

@@ -1,80 +1,94 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, ChevronRight } from 'lucide-react';
-import useBamNgoai from '../../../common/useClickOutside';
-import { useManager as useNguCanhTaiKhoan } from '../../Manager/layout/ManagerContext';
-import { dinhDangNgayGio, useTaiDuLieu } from '../components/DungChung';
-import { duLieuTroGiang } from '../duLieuTroGiang';
+import useClickOutside from '../../../common/useClickOutside.js';
+import { useManager } from '../../Manager/layout/ManagerContext.jsx';
+import { formatDateTime, useAsyncData } from '../components/shared/DungChung';
+import { assistantData } from '../data/duLieuTroGiang';
 
-function ThongBaoTomTat({ thongBao, dongMenu }) {
+function NotificationPreview({ notification, closeMenu }) {
   return (
     <Link
-      className={`ta-notification-preview ${!thongBao.read ? 'is-unread' : ''}`}
+      className={`ta-notification-preview ${!notification.read ? 'is-unread' : ''}`}
       to="/assistant/thongbao"
-      onClick={dongMenu}
+      onClick={closeMenu}
     >
-      <span className="ta-notification-preview__icon"><Bell size={15} /></span>
-      <span>
-        <strong>{thongBao.title}</strong>
-        <small>{dinhDangNgayGio(thongBao.time)}</small>
+      <span className="ta-notification-preview__icon">
+        <Bell size={15} />
       </span>
-      {!thongBao.read && <i />}
+      <span>
+        <strong>{notification.title}</strong>
+        <small>{formatDateTime(notification.time)}</small>
+      </span>
+      {!notification.read && <i />}
     </Link>
   );
 }
 
-export default function MenuThongBao() {
-  const [dangMo, datDangMo] = useState(false);
-  const vungMenu = useRef(null);
-  const duLieuThongBao = useTaiDuLieu(duLieuTroGiang.layThongBao, [dangMo]);
-  const { notify: hienThongBao } = useNguCanhTaiKhoan();
-  const danhSach = duLieuThongBao.duLieu?.items ?? [];
-  const soChuaDoc = duLieuThongBao.duLieu?.unread ?? 0;
-  const nhanThongBao = `Thông báo${soChuaDoc ? `, ${soChuaDoc} chưa đọc` : ''}`;
+export default function NotificationMenu() {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef(null);
+  const notificationResource = useAsyncData(assistantData.getNotifications, [isOpen]);
+  const { notify } = useManager();
+  const items = notificationResource.data?.items ?? [];
+  const unreadCount = notificationResource.data?.unread ?? 0;
+  const notificationLabel = `Thông báo${unreadCount ? `, ${unreadCount} chưa đọc` : ''}`;
 
-  function dongMenu() {
-    datDangMo(false);
+  function closeMenu() {
+    setIsOpen(false);
   }
 
-  useBamNgoai(vungMenu, dongMenu, dangMo);
+  useClickOutside(menuRef, closeMenu, isOpen);
 
-  async function docTatCaThongBao() {
+  async function markAllNotificationsRead() {
     try {
-      await duLieuTroGiang.danhDauTatCaDaDoc();
-      duLieuThongBao.taiLai();
-    } catch (loi) {
-      hienThongBao(loi.message);
+      await assistantData.markAllNotificationsRead();
+      notificationResource.reload();
+    } catch (error) {
+      notify(error.message);
     }
   }
 
   return (
-    <div className="menu-wrap" ref={vungMenu}>
+    <div className="menu-wrap" ref={menuRef}>
       <button
         className="bell"
-        aria-label={nhanThongBao}
-        aria-expanded={dangMo}
-        onClick={() => datDangMo(giaTri => !giaTri)}
+        aria-label={notificationLabel}
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((value) => !value)}
       >
         <Bell size={17} />
-        {soChuaDoc > 0 && <span className="badge">{soChuaDoc > 99 ? '99+' : soChuaDoc}</span>}
+        {unreadCount > 0 && <span className="badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
       </button>
 
-      {dangMo && (
+      {isOpen && (
         <div className="popover ta-notification-popover">
           <div className="ta-notification-popover__head">
             <strong>Thông báo</strong>
-            {soChuaDoc > 0 && (
-              <button className="u-link" onClick={docTatCaThongBao}>Đọc tất cả</button>
+            {unreadCount > 0 && (
+              <button className="u-link" onClick={markAllNotificationsRead}>
+                Đọc tất cả
+              </button>
             )}
           </div>
-          {duLieuThongBao.loi && <p role="alert">{duLieuThongBao.loi}</p>}
-          {!duLieuThongBao.loi && !danhSach.length && (
-            <p>{duLieuThongBao.dangTai ? 'Đang tải thông báo…' : 'Bạn chưa có thông báo mới.'}</p>
+          {notificationResource.error && <p role="alert">{notificationResource.error}</p>}
+          {!notificationResource.error && !items.length && (
+            <p>
+              {notificationResource.loading ? 'Đang tải thông báo…' : 'Bạn chưa có thông báo mới.'}
+            </p>
           )}
-          {danhSach.slice(0, 4).map(thongBao => (
-            <ThongBaoTomTat key={thongBao.id} thongBao={thongBao} dongMenu={dongMenu} />
+          {items.slice(0, 4).map((notification) => (
+            <NotificationPreview
+              key={notification.id}
+              notification={notification}
+              closeMenu={closeMenu}
+            />
           ))}
-          <Link className="ta-notification-popover__foot" to="/assistant/thongbao" onClick={dongMenu}>
+          <Link
+            className="ta-notification-popover__foot"
+            to="/assistant/thongbao"
+            onClick={closeMenu}
+          >
             Xem tất cả thông báo <ChevronRight size={13} />
           </Link>
         </div>
