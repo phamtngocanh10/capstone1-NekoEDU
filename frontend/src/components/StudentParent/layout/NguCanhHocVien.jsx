@@ -1,106 +1,108 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { taodulieumau } from './duLieuMau';
-import { docdulieu, khoadulieu, luudulieu, saochep } from './luuTruMau';
-import * as xulydulieu from './xulydulieu';
+import { createDemoData } from '../data/duLieuMau';
+import { readDemoData, DEMO_DATA_KEY, writeDemoData, cloneData } from '../data/luuTruMau';
+import * as studentActions from '../data/xuLyDuLieu';
 
-const Ngucanhhocvien = createContext(null);
+const StudentParentContext = createContext(null);
 
-export function Cungcaphocvien({ children: noidung }) {
-  const [dulieu, datdulieu] = useState(docdulieu);
-  const dulieuhientai = useRef(dulieu);
-  const [loinhan, datloinhan] = useState('');
-  const thongbao = useCallback((noidung) => datloinhan(String(noidung)), []);
-  const xoathongbao = useCallback(() => datloinhan(''), []);
+export function StudentParentProvider({ children }) {
+  const [data, setData] = useState(readDemoData);
+  const currentDataRef = useRef(data);
+  const [toastMessage, setToastMessage] = useState('');
+  const notify = useCallback((message) => setToastMessage(String(message)), []);
+  const clearToast = useCallback(() => setToastMessage(''), []);
 
   useEffect(() => {
-    function nhandulieutucuasokhac(sukien) {
-      if (sukien.key !== khoadulieu) return;
-      const dulieumoi = docdulieu();
-      dulieuhientai.current = dulieumoi;
-      datdulieu(dulieumoi);
+    function handleStorageChange(event) {
+      if (event.key !== DEMO_DATA_KEY) return;
+      const nextData = readDemoData();
+      currentDataRef.current = nextData;
+      setData(nextData);
     }
-    window.addEventListener('storage', nhandulieutucuasokhac);
-    return () => window.removeEventListener('storage', nhandulieutucuasokhac);
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const capnhat = useCallback((hamthaydoi) => {
+  const updateData = useCallback((updateDraft) => {
     // Hai thao tác liên tiếp luôn dùng bản vừa lưu, kể cả khi React chưa render lại.
-    const banmoi = saochep(dulieuhientai.current);
-    const ketqua = hamthaydoi(banmoi);
-    luudulieu(banmoi);
-    dulieuhientai.current = banmoi;
-    datdulieu(banmoi);
-    return ketqua;
+    const draft = cloneData(currentDataRef.current);
+    const result = updateDraft(draft);
+    writeDemoData(draft);
+    currentDataRef.current = draft;
+    setData(draft);
+    return result;
   }, []);
 
-  const hocvien = xulydulieu.layhocvien(dulieu);
-  const cackhoadanghoc = xulydulieu.laykhoadanghoc(dulieu, hocvien.ma);
-  const cachoadon = xulydulieu.layhoadon(dulieu, hocvien.ma);
-  const cacthongbao = xulydulieu.laythongbao(dulieu, hocvien.ma);
+  const student = studentActions.getSelectedStudent(data);
+  const enrolledCourses = studentActions.getEnrolledCourses(data, student.ma);
+  const invoices = studentActions.getInvoices(data, student.ma);
+  const notifications = studentActions.getNotifications(data, student.ma);
 
-  function doihocvien(ma) {
-    return capnhat((banmoi) => xulydulieu.doihocvien(banmoi, ma));
+  function selectStudent(id) {
+    return updateData((draft) => studentActions.selectStudent(draft, id));
   }
 
-  function dangkykhoahoc(noidung) {
-    return capnhat((banmoi) => xulydulieu.dangkykhoahoc(banmoi, noidung));
+  function registerCourse(payload) {
+    return updateData((draft) => studentActions.registerCourse(draft, payload));
   }
 
-  function thanhtoanhoadon(mahoadon, phuongthuc) {
-    return capnhat((banmoi) => xulydulieu.thanhtoanhoadon(banmoi, mahoadon, phuongthuc));
+  function payInvoice(invoiceId, paymentMethod) {
+    return updateData((draft) => studentActions.payInvoice(draft, invoiceId, paymentMethod));
   }
 
-  function danhdauthongbao(mathongbao, dadoc = true) {
-    return capnhat((banmoi) => xulydulieu.danhdauthongbao(banmoi, mathongbao, dadoc));
+  function markNotificationRead(notificationId, isRead = true) {
+    return updateData((draft) =>
+      studentActions.markNotificationRead(draft, notificationId, isRead)
+    );
   }
 
-  function doctatcathongbao() {
-    return capnhat((banmoi) => xulydulieu.doctatcathongbao(banmoi));
+  function markAllNotificationsRead() {
+    return updateData((draft) => studentActions.markAllNotificationsRead(draft));
   }
 
-  function guiphanhoi(noidung) {
-    return capnhat((banmoi) => xulydulieu.guiphanhoi(banmoi, noidung));
+  function sendNotificationFeedback(payload) {
+    return updateData((draft) => studentActions.sendNotificationFeedback(draft, payload));
   }
 
-  function guidanhgia(noidung) {
-    return capnhat((banmoi) => xulydulieu.guidanhgia(banmoi, noidung));
+  function submitCourseReview(payload) {
+    return updateData((draft) => studentActions.submitCourseReview(draft, payload));
   }
 
-  function luuhoso(noidung) {
-    return capnhat((banmoi) => xulydulieu.luuhoso(banmoi, noidung));
+  function saveProfile(payload) {
+    return updateData((draft) => studentActions.saveProfile(draft, payload));
   }
 
-  function khoiphucmau() {
-    const dulieumoi = taodulieumau();
-    luudulieu(dulieumoi);
-    dulieuhientai.current = dulieumoi;
-    datdulieu(dulieumoi);
+  function resetDemoData() {
+    const nextData = createDemoData();
+    writeDemoData(nextData);
+    currentDataRef.current = nextData;
+    setData(nextData);
   }
 
-  const ngucanh = {
-    duLieu: dulieu,
-    hocVien: hocvien,
-    cacKhoaDangHoc: cackhoadanghoc,
-    cacHoaDon: cachoadon,
-    cacThongBao: cacthongbao,
-    doiHocVien: doihocvien,
-    thongBao: thongbao,
-    loiNhan: loinhan,
-    xoaThongBao: xoathongbao,
-    dangKyKhoaHoc: dangkykhoahoc,
-    thanhToanHoaDon: thanhtoanhoadon,
-    danhDauThongBao: danhdauthongbao,
-    docTatCaThongBao: doctatcathongbao,
-    guiPhanHoi: guiphanhoi,
-    guiDanhGia: guidanhgia,
-    luuHoSo: luuhoso,
-    khoiPhucMau: khoiphucmau,
+  const context = {
+    data,
+    student,
+    enrolledCourses,
+    invoices,
+    notifications,
+    selectStudent,
+    notify,
+    toastMessage,
+    clearToast,
+    registerCourse,
+    payInvoice,
+    markNotificationRead,
+    markAllNotificationsRead,
+    sendNotificationFeedback,
+    submitCourseReview,
+    saveProfile,
+    resetDemoData,
   };
-  return <Ngucanhhocvien.Provider value={ngucanh}>{noidung}</Ngucanhhocvien.Provider>;
+  return <StudentParentContext.Provider value={context}>{children}</StudentParentContext.Provider>;
 }
 
-export function useHocvienphuhuynh() {
-  const ngucanh = useContext(Ngucanhhocvien);
-  if (!ngucanh) throw new Error('useHocvienphuhuynh cần nằm trong Cungcaphocvien.');
-  return ngucanh;
+export function useStudentParent() {
+  const context = useContext(StudentParentContext);
+  if (!context) throw new Error('useStudentParent must be used within StudentParentProvider.');
+  return context;
 }

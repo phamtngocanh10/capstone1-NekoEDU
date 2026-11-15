@@ -9,78 +9,81 @@ import {
   MessageSquare,
 } from 'lucide-react';
 
-export const cacmucmenu = [
+export const MENU_ITEMS = [
   {
-    duongDan: 'trangchu',
-    ten: 'Trang chủ',
-    bieuTuong: House,
-    moTa: 'Cùng theo dõi hành trình học tập mỗi ngày',
+    path: 'trangchu',
+    title: 'Trang chủ',
+    icon: House,
+    description: 'Cùng theo dõi hành trình học tập mỗi ngày',
   },
   {
-    duongDan: 'khoahoc',
-    ten: 'Khóa học của tôi',
-    bieuTuong: BookOpen,
-    moTa: 'Khóa học đang theo học và các khóa có thể đăng ký thêm',
+    path: 'khoahoc',
+    title: 'Khóa học của tôi',
+    icon: BookOpen,
+    description: 'Khóa học đang theo học và các khóa có thể đăng ký thêm',
   },
   {
-    duongDan: 'lichhoc',
-    ten: 'Lịch học',
-    bieuTuong: CalendarDays,
-    moTa: 'Theo dõi lịch học và các buổi học sắp tới',
+    path: 'lichhoc',
+    title: 'Lịch học',
+    icon: CalendarDays,
+    description: 'Theo dõi lịch học và các buổi học sắp tới',
   },
   {
-    duongDan: 'tailieu',
-    ten: 'Tài liệu',
-    bieuTuong: FolderOpen,
-    moTa: 'Thư viện tài liệu học tập được giảng viên chia sẻ',
+    path: 'tailieu',
+    title: 'Tài liệu',
+    icon: FolderOpen,
+    description: 'Thư viện tài liệu học tập được giảng viên chia sẻ',
   },
   {
-    duongDan: 'ketqua',
-    ten: 'Điểm danh & Kết quả',
-    bieuTuong: ClipboardCheck,
-    moTa: 'Chuyên cần, điểm số và nhận xét của giảng viên',
+    path: 'ketqua',
+    title: 'Điểm danh & Kết quả',
+    icon: ClipboardCheck,
+    description: 'Chuyên cần, điểm số và nhận xét của giảng viên',
   },
   {
-    duongDan: 'hocphi',
-    ten: 'Học phí & Hóa đơn',
-    bieuTuong: CreditCard,
-    moTa: 'Theo dõi học phí, thời hạn và lịch sử hóa đơn',
+    path: 'hocphi',
+    title: 'Học phí & Hóa đơn',
+    icon: CreditCard,
+    description: 'Theo dõi học phí, thời hạn và lịch sử hóa đơn',
   },
   {
-    duongDan: 'thongbao',
-    ten: 'Thông báo',
-    bieuTuong: Bell,
-    moTa: 'Thông tin mới từ trung tâm và giảng viên',
+    path: 'thongbao',
+    title: 'Thông báo',
+    icon: Bell,
+    description: 'Thông tin mới từ trung tâm và giảng viên',
   },
   {
-    duongDan: 'danhgia',
-    ten: 'Phản hồi & Đánh giá',
-    bieuTuong: MessageSquare,
-    moTa: 'Chia sẻ trải nghiệm để mỗi buổi học tốt hơn',
+    path: 'danhgia',
+    title: 'Phản hồi & Đánh giá',
+    icon: MessageSquare,
+    description: 'Chia sẻ trải nghiệm để mỗi buổi học tốt hơn',
   },
 ];
 
-export function laytieudetrang(duongdan, hocvien, taikhoan) {
-  const cacphan = duongdan.split('/').filter(Boolean);
-  const muc = cacmucmenu.find((muc) => muc.duongDan === cacphan[1]);
-  if (cacphan[1] === 'thongtincanhan')
-    return { ten: 'Thông tin cá nhân', moTa: 'Quản lý hồ sơ và bảo mật tài khoản dùng chung' };
-  if (cacphan[1] === 'trangchu')
+export function getPageInfo(pathname, student, account) {
+  const pathSegments = pathname.split('/').filter(Boolean);
+  const item = MENU_ITEMS.find((item) => item.path === pathSegments[1]);
+  if (pathSegments[1] === 'thongtincanhan')
     return {
-      ten: 'Trang chủ',
-      moTa: `Chào ${taikhoan.ten.split(' ').at(-1)} — cùng xem tình hình học tập của ${hocvien.ten.split(' ').slice(-2).join(' ')} hôm nay`,
+      title: 'Thông tin cá nhân',
+      description: 'Quản lý hồ sơ và bảo mật tài khoản dùng chung',
     };
-  if (cacphan.length > 2) {
-    const tentrang =
-      cacphan[3] === 'phanhoi'
+  if (pathSegments[1] === 'trangchu')
+    return {
+      title: 'Trang chủ',
+      description: `Chào ${account.ten.split(' ').at(-1)} — cùng xem tình hình học tập của ${student.ten.split(' ').slice(-2).join(' ')} hôm nay`,
+    };
+  if (pathSegments.length > 2) {
+    const pageTitle =
+      pathSegments[3] === 'phanhoi'
         ? 'Phản hồi thông báo'
         : {
             khoahoc: 'Chi tiết khóa học',
             ketqua: 'Chi tiết bài kiểm tra',
             hocphi: 'Chi tiết hóa đơn',
             thongbao: 'Chi tiết thông báo',
-          }[cacphan[1]];
-    if (tentrang) return { ten: tentrang, moTa: muc?.moTa };
+          }[pathSegments[1]];
+    if (pageTitle) return { title: pageTitle, description: item?.description };
   }
-  return muc ?? { ten: 'NEKO EDU', moTa: 'Cổng thông tin Học viên / Phụ huynh' };
+  return item ?? { title: 'NEKO EDU', description: 'Cổng thông tin Học viên / Phụ huynh' };
 }

@@ -3,22 +3,22 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import LoginPage from "../pages/LoginPage";
 import PasswordRecoveryPage from "../pages/PasswordRecoveryPage";
 import PlaceholderPage from "../pages/PlaceholderPage";
-import { dadangnhaphocvien } from '../components/StudentParent/layout/duLieuDangNhap';
-const Bocuchocvien = lazy(() => import('../components/StudentParent/layout/BoCucHocVien'));
-const Trangchuhocvien = lazy(() => import('../components/StudentParent/components/TrangChu'));
-const Khoahoccuatoi = lazy(() => import('../components/StudentParent/components/KhoaHocCuaToi'));
-const Chitietkhoahoc = lazy(() => import('../components/StudentParent/components/ChiTietKhoaHoc'));
-const Lichhochocvien = lazy(() => import('../components/StudentParent/components/LichHoc'));
-const Tailieuhocvien = lazy(() => import('../components/StudentParent/components/TaiLieu'));
-const Ketquahoctap = lazy(() => import('../components/StudentParent/components/KetQuaHocTap'));
-const Chitietketqua = lazy(() => import('../components/StudentParent/components/ChiTietKetQua'));
-const Hocphihoadon = lazy(() => import('../components/StudentParent/components/HocPhiHoaDon'));
-const Chitiethoadon = lazy(() => import('../components/StudentParent/components/ChiTietHoaDon'));
-const Thongbaohocvien = lazy(() => import('../components/StudentParent/components/ThongBao'));
-const Chitietthongbaohocvien = lazy(() => import('../components/StudentParent/components/ChiTietThongBao'));
-const Phanhoithongbao = lazy(() => import('../components/StudentParent/components/PhanHoiThongBao'));
-const Danhgiahocvien = lazy(() => import('../components/StudentParent/components/DanhGia'));
-const Thongtinhocvien = lazy(() => import('../components/StudentParent/components/ThongTinCaNhan'));
+import { isStudentParentLoggedIn } from "../components/StudentParent/data/duLieuDangNhap";
+const StudentParentLayout = lazy(() => import('../components/StudentParent/layout/BoCucHocVien'));
+const StudentHome = lazy(() => import('../components/StudentParent/components/TrangChu'));
+const StudentCourses = lazy(() => import('../components/StudentParent/components/KhoaHocCuaToi'));
+const StudentCourseDetails = lazy(() => import("../components/StudentParent/components/KhoaHocCuaToi/ChiTietKhoaHoc"));
+const StudentSchedule = lazy(() => import('../components/StudentParent/components/LichHoc'));
+const StudentMaterials = lazy(() => import('../components/StudentParent/components/TaiLieu'));
+const StudentResults = lazy(() => import("../components/StudentParent/components/DiemDanhKetQua"));
+const StudentResultDetails = lazy(() => import("../components/StudentParent/components/DiemDanhKetQua/ChiTietKetQua"));
+const StudentInvoices = lazy(() => import('../components/StudentParent/components/HocPhiHoaDon'));
+const StudentInvoiceDetails = lazy(() => import("../components/StudentParent/components/HocPhiHoaDon/ChiTietHoaDon"));
+const StudentNotifications = lazy(() => import('../components/StudentParent/components/ThongBao'));
+const StudentNotificationDetails = lazy(() => import("../components/StudentParent/components/ThongBao/ChiTietThongBao"));
+const StudentNotificationReply = lazy(() => import("../components/StudentParent/components/ThongBao/PhanHoiThongBao"));
+const StudentReviews = lazy(() => import("../components/StudentParent/components/PhanHoiDanhGia"));
+const StudentProfile = lazy(() => import('../components/StudentParent/components/ThongTinCaNhan'));
 const BoCucGiangVien = lazy(
   () => import("../components/Lecturer/layout/bocuc"),
 );
@@ -126,8 +126,8 @@ function BaoVeVaiTro({ role, children }) {
   return children;
 }
 
-function Baovehocvien({ children: noiDung }) {
-  return dadangnhaphocvien() ? noiDung : <Navigate to="/login" replace />;
+function RequireStudentParent({ children }) {
+  return isStudentParentLoggedIn() ? children : <Navigate to="/login" replace />;
 }
 
 export default function AppRouter() {
@@ -150,22 +150,22 @@ export default function AppRouter() {
             element={<PasswordRecoveryPage key="reset" reset />}
           />
           <Route path="/dangky" element={<PlaceholderPage title="Đăng ký" />} />
-          <Route path="/student" element={<Baovehocvien><Bocuchocvien /></Baovehocvien>}>
+          <Route path="/student" element={<RequireStudentParent><StudentParentLayout /></RequireStudentParent>}>
             <Route index element={<Navigate to="trangchu" replace />} />
-            <Route path="trangchu" element={<Trangchuhocvien />} />
-            <Route path="khoahoc" element={<Khoahoccuatoi />} />
-            <Route path="khoahoc/:maKhoa" element={<Chitietkhoahoc />} />
-            <Route path="lichhoc" element={<Lichhochocvien />} />
-            <Route path="tailieu" element={<Tailieuhocvien />} />
-            <Route path="ketqua" element={<Ketquahoctap />} />
-            <Route path="ketqua/:maKetQua" element={<Chitietketqua />} />
-            <Route path="hocphi" element={<Hocphihoadon />} />
-            <Route path="hocphi/:maHoaDon" element={<Chitiethoadon />} />
-            <Route path="thongbao" element={<Thongbaohocvien />} />
-            <Route path="thongbao/:maThongBao" element={<Chitietthongbaohocvien />} />
-            <Route path="thongbao/:maThongBao/phanhoi" element={<Phanhoithongbao />} />
-            <Route path="danhgia" element={<Danhgiahocvien />} />
-            <Route path="thongtincanhan" element={<Thongtinhocvien />} />
+            <Route path="trangchu" element={<StudentHome />} />
+            <Route path="khoahoc" element={<StudentCourses />} />
+            <Route path="khoahoc/:maKhoa" element={<StudentCourseDetails />} />
+            <Route path="lichhoc" element={<StudentSchedule />} />
+            <Route path="tailieu" element={<StudentMaterials />} />
+            <Route path="ketqua" element={<StudentResults />} />
+            <Route path="ketqua/:maKetQua" element={<StudentResultDetails />} />
+            <Route path="hocphi" element={<StudentInvoices />} />
+            <Route path="hocphi/:maHoaDon" element={<StudentInvoiceDetails />} />
+            <Route path="thongbao" element={<StudentNotifications />} />
+            <Route path="thongbao/:maThongBao" element={<StudentNotificationDetails />} />
+            <Route path="thongbao/:maThongBao/phanhoi" element={<StudentNotificationReply />} />
+            <Route path="danhgia" element={<StudentReviews />} />
+            <Route path="thongtincanhan" element={<StudentProfile />} />
             <Route path="*" element={<Navigate to="/student/trangchu" replace />} />
           </Route>
           <Route
